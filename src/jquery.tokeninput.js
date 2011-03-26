@@ -45,6 +45,7 @@ var DEFAULT_SETTINGS = {
     // Callbacks
     onResult: null,
     onAdd: null,
+    onBeforeAdd: null,
     onDelete: null,
     onReady: null,
 
@@ -521,7 +522,9 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Add a token to the token list based on user input
     function add_token (item) {
-        var callback = settings.onAdd;
+        var li_data = $.data(item.get(0), "tokeninput");
+        var callback_onAdd = settings.onAdd;
+        var callback_onBeforeAdd = settings.onBeforeAdd;
 
         // See if the token already exists and select it if we don't want duplicates
         if(token_count > 0 && settings.preventDuplicates) {
@@ -543,6 +546,11 @@ $.TokenList = function (input, url_or_data, settings) {
             }
         }
 
+        // Execute the onAdd callback if defined
+        if($.isFunction(callback_onBeforeAdd)) {
+            callback_onBeforeAdd(li_data);
+        }
+
         // Insert the new tokens
         if(settings.tokenLimit == null || token_count < settings.tokenLimit) {
             insert_token(item);
@@ -559,8 +567,8 @@ $.TokenList = function (input, url_or_data, settings) {
         }
 
         // Execute the onAdd callback if defined
-        if($.isFunction(callback)) {
-            callback.call(hidden_input,item);
+        if($.isFunction(callback_onAdd)) {
+            callback_onAdd(li_data);
         }
     }
 
