@@ -445,5 +445,20 @@
         });
         </script>
     </div>
+
+    <h2>Wrapped in a box with a z-index</h2>
+    <div style="height: 250px;">
+      <div style="background-color: rgba(40, 40, 255, 0.8); border: 1px solid black; height: 150px; margin-bottom: 200px; padding: 20px; position: absolute; width: 500px; z-index: 5555;">
+        <input type="text" id="demo-input-z-index" name="blah" />
+        <input type="button" value="Submit" />
+        <script type="text/javascript">
+        $(document).ready(function() {
+            $("#demo-input-z-index").tokenInput("http://shell.loopj.com/tokeninput/tvshows.php");
+        });
+        </script>
+      </div>
+    </div>
+
+
 </body>
 </html>
