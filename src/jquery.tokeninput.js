@@ -341,7 +341,8 @@ $.TokenList = function (input, url_or_data, settings) {
     var dropdown = $("<div>")
         .addClass(settings.classes.dropdown)
         .appendTo("body")
-        .hide();
+        .hide()
+        .css('position', 'absolute');
 
     // Magic element to help us resize the text input
     var input_resizer = $("<tester/>")
@@ -625,12 +626,21 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     function show_dropdown() {
+        // Set an appropriate z-index for the dropdown.
+        var dropdown_z = parseInt(dropdown.css('z-index'));
+        if (isNaN(dropdown_z)) {
+            dropdown_z = 1;
+        }
+        token_list.parents().each(function(i,el) {
+            dropdown_z = Math.max(parseInt($(el).css('z-index')) || 0,
+                dropdown_z);
+        });
+
         dropdown
             .css({
-                position: "absolute",
                 top: $(token_list).offset().top + $(token_list).outerHeight(),
                 left: $(token_list).offset().left,
-                'z-index': 999
+                'z-index': dropdown_z
             })
             .show();
     }
