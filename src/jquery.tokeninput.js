@@ -331,6 +331,11 @@ $.TokenList = function (input, url_or_data, settings) {
         })
         .insertBefore(hidden_input);
 
+    // In case there is no fixed width, the dropdown's width has to be
+    // adjusted every time it is displayed
+    var tlw = token_list.css('width');
+    var update_input_token_width = (parseInt(tlw) == 0) || !tlw.match(/px$/);
+
     // The token holding the input box
     var input_token = $("<li />")
         .addClass(settings.classes.inputToken)
@@ -635,6 +640,11 @@ $.TokenList = function (input, url_or_data, settings) {
             dropdown_z = Math.max(parseInt($(el).css('z-index')) || 0,
                 dropdown_z);
         });
+
+        // Update width, if necessary.
+        if (update_input_token_width) {
+          dropdown.width(token_list.width());
+        }
 
         dropdown
             .css({
