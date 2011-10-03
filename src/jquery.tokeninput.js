@@ -352,9 +352,14 @@ $.TokenList = function (input, url_or_data, settings) {
         .append(input_box);
 
     // The list to store the dropdown items in
+    var dropdown_parent = $("<div>")
+        .insertAfter(token_list)
+        .css({
+            position: "relative"
+        });
     var dropdown = $("<div>")
         .addClass(settings.classes.dropdown)
-        .appendTo("body")
+        .appendTo(dropdown_parent)
         .hide();
 
     // Magic element to help us resize the text input
@@ -528,14 +533,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
         console.log(ctrlPressed);
         // Only clear search if CTRL key is not pressed
-        if (ctrlPressed) {
-            dropdown.css({
-                position: "absolute",
-                top: $(token_list).offset().top + $(token_list).outerHeight(),
-                left: $(token_list).offset().left,
-                'z-index': 999
-            });
-        } else {
+        if (!ctrlPressed) {
           // Clear input box
           input_box.val("");
 
@@ -653,8 +651,8 @@ $.TokenList = function (input, url_or_data, settings) {
         dropdown
             .css({
                 position: "absolute",
-                top: $(token_list).offset().top + $(token_list).outerHeight(),
-                left: $(token_list).offset().left,
+                top: 0,
+                left: 0,
                 'z-index': 999
             })
             .show();
