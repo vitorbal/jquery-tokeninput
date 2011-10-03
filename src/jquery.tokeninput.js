@@ -40,6 +40,8 @@ var DEFAULT_CLASSES = {
     selectedToken: "token-input-selected-token",
     highlightedToken: "token-input-highlighted-token",
     dropdown: "token-input-dropdown",
+    dropdownTopOrientation: "token-input-dropdown-top",
+    dropdownBottomOrientation: "token-input-dropdown-bottom",
     dropdownItem: "token-input-dropdown-item",
     dropdownItem2: "token-input-dropdown-item2",
     selectedDropdownItem: "token-input-selected-dropdown-item",
@@ -524,10 +526,12 @@ $.TokenList = function (input, url_or_data, settings) {
 
     function show_dropdown() {
         var dropdown_height = $("ul", dropdown).height(),
-            bottom_height_left = $(document).height() - $(token_list).offset().top - $(token_list).outerHeight(),
+            bottom_height_left = $(document).height() -
+              $(token_list).offset().top - $(token_list).outerHeight(),
             top_height_left = $(token_list).offset().top;
 
-        if (dropdown_height > bottom_height_left && dropdown_height < top_height_left) {
+        if (dropdown_height > bottom_height_left &&
+              dropdown_height < top_height_left) {
             // Show dropdown to the top, ergo 'dropup'
             dropdown
                 .css({
@@ -537,8 +541,8 @@ $.TokenList = function (input, url_or_data, settings) {
                     left: 0,
                     width: token_list.width()
                 })
-                .addClass('token-input-dropdown-top-facebook')
-                .removeClass('token-input-dropdown-bottom-facebook')
+                .removeClass(settings.classes.dropdownBottomOrientation)
+                .addClass(settings.classes.dropdownTopOrientation)
                 .show();
         } else {
             dropdown
@@ -549,8 +553,8 @@ $.TokenList = function (input, url_or_data, settings) {
                     left: 0,
                     width: token_list.width()
                 })
-                .removeClass('token-input-dropdown-top-facebook')
-                .addClass('token-input-dropdown-bottom-facebook')
+                .removeClass(settings.classes.dropdownTopOrientation)
+                .addClass(settings.classes.dropdownBottomOrientation)
                 .show();
         }
     }
