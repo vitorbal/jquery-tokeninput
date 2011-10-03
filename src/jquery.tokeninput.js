@@ -653,8 +653,7 @@ $.TokenList = function (input, url_or_data, settings) {
                 position: "absolute",
                 top: 0,
                 left: 0,
-                width: token_list.width(),
-                'z-index': 999
+                width: token_list.width()
             })
             .show();
     }
