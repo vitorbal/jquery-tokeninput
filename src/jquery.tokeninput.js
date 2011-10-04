@@ -38,6 +38,7 @@ var DEFAULT_SETTINGS = {
     tokenLimit: null,
     tokenDelimiter: ",",
     preventDuplicates: false,
+    hideAlreadySelected: false,
     tokenValue: "id",
 
     // Callbacks
@@ -730,7 +731,8 @@ $.TokenList = function (input, url_or_data, settings) {
               noResultsToDisplay = true;
 
             $.each(results, function(index, value) {
-                if(!settings.preventDuplicates || !isSelected(value[settings.propertyToSearch])){
+                if(!(settings.preventDuplicates && settings.hideAlreadySelected) ||
+                  !isSelected(value[settings.propertyToSearch])) {
                     var this_li = settings.resultsFormatter(value);
 
                     this_li = find_value_and_highlight_term(this_li ,value[settings.propertyToSearch], query);
