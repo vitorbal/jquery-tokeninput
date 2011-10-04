@@ -725,7 +725,9 @@ $.TokenList = function (input, url_or_data, settings) {
                     hidden_input.change();
                     return false;
                 })
-                .hide();
+                .hide(),
+              // Track if any results should be displayed
+              noResultsToDisplay = true;
 
             $.each(results, function(index, value) {
                 if(!settings.preventDuplicates || !isSelected(value[settings.propertyToSearch])){
@@ -741,14 +743,20 @@ $.TokenList = function (input, url_or_data, settings) {
                         this_li.addClass(settings.classes.dropdownItem2);
                     }
 
-                    if(index === 0) {
+                    // If this is the first result to be displayed, it should
+                    // be automatically selected when the dropdown is shown
+                    if(noResultsToDisplay) {
                         select_dropdown_item(this_li);
+                        noResultsToDisplay = false;
                     }
 
                     $.data(this_li.get(0), "tokeninput", value);
                 }
             });
 
+            if (noResultsToDisplay && settings.noResultsText) {
+                dropdown.html("<p>"+settings.noResultsText+"</p>");
+            }
             show_dropdown();
 
             if(settings.animateDropdown) {
