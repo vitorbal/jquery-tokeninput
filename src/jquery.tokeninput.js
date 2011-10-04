@@ -18,6 +18,7 @@ var DEFAULT_SETTINGS = {
     minChars: 1,
     propertyToSearch: "name",
     jsonContainer: null,
+    jsonResultCount: null,           // json attr that contians the result count
     contentType: "json",
 
     // Prepopulation settings
@@ -187,6 +188,16 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Keep track of the state of the CTRL key
     var ctrlPressed = false;
+
+    // Lazy Rendering
+    var result_limit = 150;
+    var lazy_rendering_in_use; // tri-state: undefined, false, true
+    var dropdown_render_delay;
+    var dropdown_item_height;
+    var rendered_from, rendered_to;
+    var current_results, current_result_count;
+    var visible_dropdown_items;
+    var $upper_dummy, $lower_dummy, $item_list;
 
     // Create a new text input an attach keyup events
     var input_box = $("<input type=\"text\"  autocomplete=\"off\">")
@@ -369,7 +380,8 @@ $.TokenList = function (input, url_or_data, settings) {
         .addClass(settings.classes.dropdown)
         .appendTo(dropdown_parent)
         .hide()
-        .css('position', 'absolute');
+        .css('position', 'absolute')
+        .scroll(dropdownScrollHandler);
 
     // Magic element to help us resize the text input
     var input_resizer = $("<tester/>")
@@ -713,60 +725,179 @@ $.TokenList = function (input, url_or_data, settings) {
       escapeRegExp(value) + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
     }
 
-    // Populate the results dropdown with some results
-    function populate_dropdown (query, results) {
-        if(results && results.length) {
-            dropdown.empty();
-            var dropdown_ul = $("<ul>")
-                .appendTo(dropdown)
-                .mouseover(function (event) {
-                    select_dropdown_item($(event.target).closest("li"));
-                })
-                .mousedown(function (event) {
-                    add_token($(event.target).closest("li").data("tokeninput"));
-                    hidden_input.change();
-                    return false;
-                })
-                .hide(),
-              // Track if any results should be displayed
-              noResultsToDisplay = true;
+    function renderDropdownContent(results, result_count) {
+        if (results) {
+            current_results = results;
+            current_result_count = result_count;
+        }
 
-            $.each(results, function(index, value) {
-                if(!(settings.preventDuplicates && settings.hideAlreadySelected) ||
-                  !isSelected(value[settings.propertyToSearch])) {
-                    var this_li = settings.resultsFormatter(value);
+        var from, to, i;
 
-                    this_li = find_value_and_highlight_term(this_li ,value[settings.propertyToSearch], query);
+        if (lazy_rendering_in_use) {
+            if (dropdown_item_height) {
+                // Check what needs to be rendered.
+                var pos = dropdown.scrollTop();
+                var visible_from = Math.floor(pos / dropdown_item_height);
+                var visible_to = visible_from + visible_dropdown_items;
 
-                    this_li = $(this_li).appendTo(dropdown_ul);
-
-                    if(index % 2) {
-                        this_li.addClass(settings.classes.dropdownItem);
-                    } else {
-                        this_li.addClass(settings.classes.dropdownItem2);
-                    }
-
-                    // If this is the first result to be displayed, it should
-                    // be automatically selected when the dropdown is shown
-                    if(noResultsToDisplay) {
-                        select_dropdown_item(this_li);
-                        noResultsToDisplay = false;
-                    }
-
-                    $.data(this_li.get(0), "tokeninput", value);
+                // Check whether the currently visible area is rendered
+                if ((visible_from >= rendered_from) && (visible_to <= rendered_to)) {
+                    return;
                 }
-            });
 
-            if (noResultsToDisplay && settings.noResultsText) {
-                dropdown.html("<p>"+settings.noResultsText+"</p>");
+                from = Math.max(0, visible_from -
+                  Math.floor((result_limit - visible_dropdown_items) / 2));
+                to = from + result_limit;
+                if (to > current_result_count - 1) {
+                    to = current_result_count - 1;
+                    from = Math.max(0, current_result_count - result_limit);
+                }
+                if (rendered_from === from) {
+                    return;
+                }
+            } else {
+                // The result item's height is not yet known.  Just render
+                // the maximum allowed number of lines.
+                from = 0;
+                to = Math.min(result_limit, current_result_count - 1);
+
+                dropdown.scrollTop(0);
             }
+        } else {
+            from = 0;
+            to = result_count - 1;
+        }
+
+        $item_list.empty();
+        var dd = dropdown[0];
+        for (i = from; i <= to; i++) {
+            var value = current_results[i];
+            var li = settings.resultsFormatter(value);
+            var css_class = (i % 2) ?
+                settings.classes.dropdownItem :
+                settings.classes.dropdownItem2;
+
+            // li = find_value_and_highlight_term(
+            //        li, value[settings.propertyToSearch], query);
+
+            var $li = $(li)
+                .addClass(css_class)
+                .appendTo($item_list);
+
+            if (i === 0) {
+                select_dropdown_item($li);
+                dropdown_item_height = $li.outerHeight(true);
+            }
+
+            if (!visible_dropdown_items &&
+              (dd.scrollHeight > dd.clientHeight)) {
+                // Dropdown starts overflowing. Therefore it reached its
+                // maximum vertical size.
+                visible_dropdown_items =
+                    Math.ceil(dd.clientHeight / dropdown_item_height) + 1;
+            }
+            $.data($li.get(0), "tokeninput", value);
+        }
+
+        // Adjust upper and lower place holders, if necessary.
+        rendered_from = from;
+        rendered_to = to;
+        if (lazy_rendering_in_use) {
+            $upper_dummy.height(from * dropdown_item_height);
+            $lower_dummy.height(dropdown_item_height *
+                (current_result_count - to - 1));
+        }
+    }
+
+    function dropdownScrollHandler() {
+        if (!lazy_rendering_in_use) {
+            return;
+        }
+        if (dropdown_render_delay) {
+            clearTimeout(dropdown_render_delay);
+            dropdown_render_delay = undefined;
+        }
+
+        dropdown_render_delay = setTimeout(function() {
+            renderDropdownContent();
+        }, 100);
+    }
+
+    // Populate the results dropdown with some results
+    function populate_dropdown(query, results, result_count) {
+        if ($upper_dummy) {
+            $upper_dummy.remove();
+            $upper_dummy = undefined;
+        }
+        if ($lower_dummy) {
+            $lower_dummy.remove();
+            $lower_dummy = undefined;
+        }
+        if ($item_list) {
+            $item_list.remove();
+            $item_list = undefined;
+        }
+        dropdown_item_height = undefined;
+        dropdown.empty();
+
+        if (results && result_count) {
+            // Choose rendering strategy:
+            lazy_rendering_in_use = (results.length < result_count) ||
+                (result_count > result_limit);
+
+            // Apply rendering strategy:
+            if (lazy_rendering_in_use) {
+                // "Lazy" rendering strategy
+                $upper_dummy = $("<div />")
+                    .css({
+                        background: 'transparent',
+                        border: 0,
+                        height: 0,
+                        margin: 0,
+                        padding: 0,
+                        width: 'auto'
+                    })
+                    .appendTo(dropdown);
+
+                $item_list = $("<ul>")
+                    .appendTo(dropdown)
+                    .mouseover(function (event) {
+                        select_dropdown_item($(event.target).closest("li"));
+                    })
+                    .mousedown(function (event) {
+                        add_token($(event.target).closest("li").data("tokeninput"));
+                        hidden_input.change();
+                        return false;
+                    });
+                $lower_dummy = $("<div />")
+                    .css({
+                        background: 'transparent',
+                        border: 0,
+                        height: 0,
+                        margin: 0,
+                        padding: 0,
+                        width: 'auto'
+                    })
+                    .appendTo(dropdown);
+
+                renderDropdownContent(results, result_count, false);
+            } else {
+                // "Swotty" rendering strategy
+                $item_list = $("<ul>")
+                    .appendTo(dropdown)
+                    .mouseover(function (event) {
+                        select_dropdown_item($(event.target).closest("li"));
+                    })
+                    .mousedown(function (event) {
+                        add_token($(event.target).closest("li").data("tokeninput"));
+                        hidden_input.change();
+                        return false;
+                    });
+                renderDropdownContent(results, result_count, true);
+            }
+
             show_dropdown();
 
-            if(settings.animateDropdown) {
-                dropdown_ul.slideDown("fast");
-            } else {
-                dropdown_ul.show();
-            }
         } else {
             if(settings.noResultsText) {
                 dropdown.html("<p>"+settings.noResultsText+"</p>");
@@ -832,7 +963,7 @@ $.TokenList = function (input, url_or_data, settings) {
         var cache_key = query + computeURL();
         var cached_results = cache.get(cache_key);
         if(cached_results) {
-            populate_dropdown(query, cached_results);
+                populate_dropdown(query, cached_results, cached_results.length);
         } else {
             // Are we doing an ajax search or local data search?
             if(settings.url) {
@@ -863,12 +994,12 @@ $.TokenList = function (input, url_or_data, settings) {
 
                 // Attach the success callback
                 ajax_params.success = function(results) {
-                  if($.isFunction(settings.onResult)) {
-                      results = settings.onResult.call(hidden_input, results);
-                  }
-                  cache.add(cache_key, settings.jsonContainer ? results[settings.jsonContainer] : results);
+                    if($.isFunction(settings.onResult)) {
+                        results = settings.onResult.call(hidden_input, results);
+                    }
+                    cache.add(cache_key, settings.jsonContainer ? results[settings.jsonContainer] : results);
 
-                  // only populate the dropdown if the results are associated with the active search query
+                    // only populate the dropdown if the results are associated with the active search query
                   if(input_box.val().toLowerCase() === query) {
                       populate_dropdown(query, settings.jsonContainer ? results[settings.jsonContainer] : results);
                   }
@@ -882,11 +1013,13 @@ $.TokenList = function (input, url_or_data, settings) {
                     return row[settings.propertyToSearch].toLowerCase().indexOf(query.toLowerCase()) > -1;
                 });
 
+                var start = new Date().getTime();
                 if($.isFunction(settings.onResult)) {
                     results = settings.onResult.call(hidden_input, results);
                 }
                 cache.add(cache_key, results);
-                populate_dropdown(query, results);
+                populate_dropdown(query, results, results.length);
+                end = new Date().getTime();
             }
         }
     }
