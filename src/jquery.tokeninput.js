@@ -663,7 +663,7 @@ $.TokenList = function (input, url_or_data, settings) {
                     bottom: $(token_list).outerHeight(),
                     top: '',
                     left: 0,
-                    width: token_list.width()
+                    width: token_list.css('width')
                 })
                 .removeClass(settings.classes.dropdownBottomOrientation)
                 .addClass(settings.classes.dropdownTopOrientation)
@@ -675,7 +675,7 @@ $.TokenList = function (input, url_or_data, settings) {
                     top: 0,
                     bottom: '',
                     left: 0,
-                    width: token_list.width()
+                    width: token_list.css('width')
                 })
                 .removeClass(settings.classes.dropdownTopOrientation)
                 .addClass(settings.classes.dropdownBottomOrientation)
