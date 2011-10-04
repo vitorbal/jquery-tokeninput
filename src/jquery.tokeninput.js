@@ -31,6 +31,7 @@ var DEFAULT_SETTINGS = {
     searchingText: "Searching...",
     deleteText: "&times;",
     animateDropdown: true,
+    lazyRenderingThreshold: 150,
     theme: null,
     resultsFormatter: function(item){ return "<li>" + item[this.propertyToSearch]+ "</li>" },
     tokenFormatter: function(item) { return "<li><p>" + item[this.propertyToSearch] + "</p></li>" },
@@ -190,12 +191,12 @@ $.TokenList = function (input, url_or_data, settings) {
     var ctrlPressed = false;
 
     // Lazy Rendering
-    var result_limit = 150;
-    var lazy_rendering_in_use; // tri-state: undefined, false, true
+    var result_limit;
+    var lazy_rendering;
     var dropdown_render_delay;
     var dropdown_item_height;
     var rendered_from, rendered_to;
-    var current_results, current_result_count;
+    var dropdown_data;
     var visible_dropdown_items;
     var $upper_dummy, $lower_dummy, $item_list;
 
@@ -380,7 +381,7 @@ $.TokenList = function (input, url_or_data, settings) {
         .addClass(settings.classes.dropdown)
         .appendTo(dropdown_parent)
         .hide()
-        .css('position', 'absolute')
+        .css({'position': 'absolute', 'overflow-y': 'auto'})
         .scroll(dropdownScrollHandler);
 
     // Magic element to help us resize the text input
@@ -725,15 +726,17 @@ $.TokenList = function (input, url_or_data, settings) {
       escapeRegExp(value) + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
     }
 
-    function renderDropdownContent(results, result_count) {
+    function renderDropdownContent(results, result_count, query) {
+        var from, to;
         if (results) {
-            current_results = results;
-            current_result_count = result_count;
+	    dropdown_data = {
+		'items': results,
+		'count': result_count,
+		'query': query
+	    };
         }
 
-        var from, to, i;
-
-        if (lazy_rendering_in_use) {
+        if (lazy_rendering) {
             if (dropdown_item_height) {
                 // Check what needs to be rendered.
                 var pos = dropdown.scrollTop();
@@ -748,9 +751,9 @@ $.TokenList = function (input, url_or_data, settings) {
                 from = Math.max(0, visible_from -
                   Math.floor((result_limit - visible_dropdown_items) / 2));
                 to = from + result_limit;
-                if (to > current_result_count - 1) {
-                    to = current_result_count - 1;
-                    from = Math.max(0, current_result_count - result_limit);
+                if (to >= dropdown_data.count) {
+                    to = dropdown_data.count - 1;
+                    from = Math.max(0, from - result_limit);
                 }
                 if (rendered_from === from) {
                     return;
@@ -759,7 +762,7 @@ $.TokenList = function (input, url_or_data, settings) {
                 // The result item's height is not yet known.  Just render
                 // the maximum allowed number of lines.
                 from = 0;
-                to = Math.min(result_limit, current_result_count - 1);
+                to = Math.min(result_limit, dropdown_data.count - 1);
 
                 dropdown.scrollTop(0);
             }
@@ -770,15 +773,15 @@ $.TokenList = function (input, url_or_data, settings) {
 
         $item_list.empty();
         var dd = dropdown[0];
-        for (i = from; i <= to; i++) {
-            var value = current_results[i];
+        for (var i = from; i <= to; i++) {
+            var value = dropdown_data.items[i];
             var li = settings.resultsFormatter(value);
             var css_class = (i % 2) ?
                 settings.classes.dropdownItem :
                 settings.classes.dropdownItem2;
 
-            // li = find_value_and_highlight_term(
-            //        li, value[settings.propertyToSearch], query);
+            li = find_value_and_highlight_term(
+                li, value[settings.propertyToSearch], query);
 
             var $li = $(li)
                 .addClass(css_class)
@@ -802,15 +805,15 @@ $.TokenList = function (input, url_or_data, settings) {
         // Adjust upper and lower place holders, if necessary.
         rendered_from = from;
         rendered_to = to;
-        if (lazy_rendering_in_use) {
+        if (lazy_rendering) {
             $upper_dummy.height(from * dropdown_item_height);
             $lower_dummy.height(dropdown_item_height *
-                (current_result_count - to - 1));
+                (dropdown_data.count - to - 1));
         }
     }
 
     function dropdownScrollHandler() {
-        if (!lazy_rendering_in_use) {
+        if (!lazy_rendering) {
             return;
         }
         if (dropdown_render_delay) {
@@ -842,12 +845,14 @@ $.TokenList = function (input, url_or_data, settings) {
 
         if (results && result_count) {
             // Choose rendering strategy:
-            lazy_rendering_in_use = (results.length < result_count) ||
-                (result_count > result_limit);
+            lazy_rendering = (results.length < result_count) ||
+                (result_count > settings.lazyRenderingThreshold);
 
             // Apply rendering strategy:
-            if (lazy_rendering_in_use) {
-                // "Lazy" rendering strategy
+            if (lazy_rendering) {
+		result_limit =
+		    Math.min(settings.lazyRenderingThreshold, result_count);
+
                 $upper_dummy = $("<div />")
                     .css({
                         background: 'transparent',
@@ -880,7 +885,7 @@ $.TokenList = function (input, url_or_data, settings) {
                     })
                     .appendTo(dropdown);
 
-                renderDropdownContent(results, result_count, false);
+                renderDropdownContent(results, result_count, query);
             } else {
                 // "Swotty" rendering strategy
                 $item_list = $("<ul>")
@@ -893,7 +898,7 @@ $.TokenList = function (input, url_or_data, settings) {
                         hidden_input.change();
                         return false;
                     });
-                renderDropdownContent(results, result_count, true);
+                renderDropdownContent(results, result_count, query);
             }
 
             show_dropdown();

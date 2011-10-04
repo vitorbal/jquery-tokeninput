@@ -1,51 +1,49 @@
-<html>
-<head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
     <script type="text/javascript" src="../src/jquery.tokeninput.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function() {
+        var mountains = [ 'Albis, Bürglen', 'Aletschhorn', 'Allalinhorn', 'Alperschällihorn', 'Alphubel', 'Altels', 'Altenalp Türm', 'Altmann', 'Alvier', 'Aubrig', 'Bächenstock', 'Bachtel', 'Badus', 'Balmhorn', 'Bella Tola', 'Bellavista', 'Bietschhorn', 'Bifertenstock', 'Blüemlisalp Rothore', 'Blüemlisalp', 'Born', 'Bös Fulen', 'Breithorn BE/VS', 'Breithorn VS', 'Brienzer Rothorn', 'Brisen', 'Brisi', 'Brünnelistock', 'Bruschghorn', 'Burgfeldstand', 'Camoghè', 'Castor', 'Chli Rinderhorn', 'Chli Windgällen', 'Chöpfenberg', 'Chrüzberg', 'Chumigalm', 'Clariden', 'Dammastock', 'Daubenhorn', 'Dent Blanche', 'Dent du Salantin', 'Dents du Midi', 'Dirruhorn', 'Doldenhorn', 'Dom', 'Dreieckhorn', 'Dufourspitze', 'Eiger', 'Engelberger Rotstock', 'Etzel (Berg)', 'Fänerenspitz', 'Faulhorn', 'Fellihorn', 'Felsberger Calanda', 'Fil de Cassons', 'Finsteraarhorn', 'Fisistock, Innerer', 'Fronalpstock', 'Frümsel', 'Furggelenstock', 'Gäbris', 'Gauschla', 'Glärnisch', 'Glishorn', 'Gonzen', 'Grand Combin', 'Gspaltenhorn', 'Günerhorn', 'Gurten', 'Gwächtenhorn', 'Hahnen', 'Haldensteiner Calanda', 'Hausstock', 'Hinterrugg', 'Hoch Geissberg', 'Höch Hirschberg', 'Hochflue (Rigi)', 'Hochhus', 'Hochstollen', 'Hochwang', 'Hoh Brisen', 'Hoher Kasten', 'Hohgant', 'Hundstein', 'Hundwiler Höhi', 'Hüser', 'Irchel', 'Jakobshorn', 'Jungfrau', 'Kamor', 'Kleiner Mythen', 'Kronberg', 'Lägern', 'Lagginhorn', 'Le Rubli', 'Leistchamm', 'Les Diablerets', 'Liskamm', 'Ludwigshöhe', 'Marwees', 'Matterhorn', 'Moleson', 'Mönch', 'Montalin', 'Monte Basòdino', 'Monte Generoso', 'Monte Leone', 'Monte San Giorgio', 'Monte San Salvatore', 'Monte Tamaro', 'Morgenberghorn', 'Morgenhorn', 'Mürtschenstock', 'Mythen, Grosser', 'Nadelhorn', 'Namenlos', 'Napf', 'Nesthorn', 'Nidfurner Turm', 'Niederbauen Chulm', 'Niederhorn', 'Niesen', 'Oberalpstock', 'Oberbauenstock', 'Oberhorn', 'Oeschinenhorn', 'Ofen', 'Olmenhorn', 'Ortstock', 'Parrotspitze', 'Pfannenstiel', 'Pilatus', 'Piz Arblatsch', 'Piz Argient', 'Piz Bernina', 'Piz Beverin', 'Piz Buin', 'Piz Caschleglia', 'Piz Curvér', 'Piz Daint', 'Piz Dolf', 'Piz Ela', 'Piz Fess', 'Piz Forbesch', 'Piz Mitgel', 'Piz Morteratsch', 'Piz Mundaun', 'Piz Nair', 'Piz Palü', 'Piz Riein', 'Piz Roseg', 'Piz Sardona', 'Piz Segnas', 'Piz Sezner', 'Piz Signina', 'Piz Surlej', 'Piz Tarantschun', 'Piz Terri', 'Piz Toissa', 'Piz Uccello', 'Piz Varuna', 'Piz Zupò', 'Pizzo Badile', 'Pizzo Campo Tencia', 'Pizzo Tambo /Tambohorn', 'Planggenstock', 'Plattenflue', 'Rautispitz', 'Regitzer Spitz', 'Rheinwaldhorn', 'Rienzenstock', 'Rigi-Kulm', 'Rinderhorn', 'Rossberg', 'Salbitschijen', 'Säntis', 'Schäfler', 'Gross Schärhorn', 'Schesaplana', 'Schiahorn', 'Schibenstoll', 'Schilthorn', 'Schinberg', 'Schlüechtli', 'Schrattenfluh', 'Schreckhorn', 'Schwalmis', 'Schwarzeberg', 'Selun', 'Sichelchamm', 'Sieben Hengste', 'Signalkuppe', 'Sigriswiler Rothorn', 'Silvrettahorn', 'Six Madun', 'Speer', 'Spitzmeilen', 'Stanserhorn', 'Stockhorn', 'Sustenhorn', 'Taminser Calanda', 'Täschhorn', 'Tinzenhorn', 'Titlis', 'Tödi', 'Tomlishorn', 'Tour Sallière', 'Tschingelhörner', 'Tweralpspitz', 'Uetliberg', 'Vanil Noir', 'Vorderglärnisch', 'Vrenelisgärtli', 'Wasenhorn', 'Weisshorn', 'Weissmies', 'Wetterhorn', 'Wildhorn', 'Wildhuser Schafberg', 'Wildstrubel', 'Gross Windgällen', 'Wiriehore', 'Wissberg', 'Wissigstock', 'Wyssi Frau', 'Zervreilahorn', 'Zinalrothorn', 'Zindlenspitz', 'Zuestoll', 'Zumsteinspitze' ];
+        var len = mountains.length;
+        var data = [];
+        for (var i = 1; i <= 25000; i++) {
+          data.push({
+	    id: i,
+	    name: "A " + mountains[i % len]
+          });
+        }
 
+        $("input[type=button]").click(function () {
+          alert("Would submit: " + $(this).siblings("input[type=text]").val());
+        });
+
+        $("#demo-input-lazy").tokenInput(data, {
+          resultsFormatter: function(item) {
+            return "<li>" + item['name'] + "<span>" + item['id'] + "</span></li>"
+          },
+        });
+      });
+
+    </script>
     <link rel="stylesheet" href="../styles/token-input.css" type="text/css" />
     <link rel="stylesheet" href="../styles/token-input-facebook.css" type="text/css" />
-
-    <script type="text/javascript">
-    $(document).ready(function() {
-        $("input[type=button]").click(function () {
-            alert("Would submit: " + $(this).siblings("input[type=text]").val());
-        });
-    });
-    </script>
     <style type="text/css">
-    li span {
-      float: right;
-      color: red;
-    }
+       li span {
+         float: right;
+         color: red;
+       }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <h1>Lazy Rendering</h1>
     <div>
-        <input type="text" id="demo-input-lazy" name="blah" />
-        <input type="button" value="Submit" />
-        <script type="text/javascript">
-        $(document).ready(function() {
-            var mountains = [ 'Albis, BÃ¼rglen', 'Aletschhorn', 'Allalinhorn', 'AlperschÃ¤llihorn', 'Alphubel', 'Altels', 'Altenalp TÃ¼rm', 'Altmann', 'Alvier', 'Aubrig', 'BÃ¤chenstock', 'Bachtel', 'Badus', 'Balmhorn', 'Bella Tola', 'Bellavista', 'Bietschhorn', 'Bifertenstock', 'BlÃ¼emlisalp Rothore', 'BlÃ¼emlisalp', 'Born', 'BÃ¶s Fulen', 'Breithorn BE/VS', 'Breithorn VS', 'Brienzer Rothorn', 'Brisen', 'Brisi', 'BrÃ¼nnelistock', 'Bruschghorn', 'Burgfeldstand', 'CamoghÃ¨', 'Castor', 'Chli Rinderhorn', 'Chli WindgÃ¤llen', 'ChÃ¶pfenberg', 'ChrÃ¼zberg', 'Chumigalm', 'Clariden', 'Dammastock', 'Daubenhorn', 'Dent Blanche', 'Dent du Salantin', 'Dents du Midi', 'Dirruhorn', 'Doldenhorn', 'Dom', 'Dreieckhorn', 'Dufourspitze', 'Eiger', 'Engelberger Rotstock', 'Etzel (Berg)', 'FÃ¤nerenspitz', 'Faulhorn', 'Fellihorn', 'Felsberger Calanda', 'Fil de Cassons', 'Finsteraarhorn', 'Fisistock, Innerer', 'Fronalpstock', 'FrÃ¼msel', 'Furggelenstock', 'GÃ¤bris', 'Gauschla', 'GlÃ¤rnisch', 'Glishorn', 'Gonzen', 'Grand Combin', 'Gspaltenhorn', 'GÃ¼nerhorn', 'Gurten', 'GwÃ¤chtenhorn', 'Hahnen', 'Haldensteiner Calanda', 'Hausstock', 'Hinterrugg', 'Hoch Geissberg', 'HÃ¶ch Hirschberg', 'Hochflue (Rigi)', 'Hochhus', 'Hochstollen', 'Hochwang', 'Hoh Brisen', 'Hoher Kasten', 'Hohgant', 'Hundstein', 'Hundwiler HÃ¶hi', 'HÃ¼ser', 'Irchel', 'Jakobshorn', 'Jungfrau', 'Kamor', 'Kleiner Mythen', 'Kronberg', 'LÃ¤gern', 'Lagginhorn', 'Le Rubli', 'Leistchamm', 'Les Diablerets', 'Liskamm', 'LudwigshÃ¶he', 'Marwees', 'Matterhorn', 'Moleson', 'MÃ¶nch', 'Montalin', 'Monte BasÃ²dino', 'Monte Generoso', 'Monte Leone', 'Monte San Giorgio', 'Monte San Salvatore', 'Monte Tamaro', 'Morgenberghorn', 'Morgenhorn', 'MÃ¼rtschenstock', 'Mythen, Grosser', 'Nadelhorn', 'Namenlos', 'Napf', 'Nesthorn', 'Nidfurner Turm', 'Niederbauen Chulm', 'Niederhorn', 'Niesen', 'Oberalpstock', 'Oberbauenstock', 'Oberhorn', 'Oeschinenhorn', 'Ofen', 'Olmenhorn', 'Ortstock', 'Parrotspitze', 'Pfannenstiel', 'Pilatus', 'Piz Arblatsch', 'Piz Argient', 'Piz Bernina', 'Piz Beverin', 'Piz Buin', 'Piz Caschleglia', 'Piz CurvÃ©r', 'Piz Daint', 'Piz Dolf', 'Piz Ela', 'Piz Fess', 'Piz Forbesch', 'Piz Mitgel', 'Piz Morteratsch', 'Piz Mundaun', 'Piz Nair', 'Piz PalÃ¼', 'Piz Riein', 'Piz Roseg', 'Piz Sardona', 'Piz Segnas', 'Piz Sezner', 'Piz Signina', 'Piz Surlej', 'Piz Tarantschun', 'Piz Terri', 'Piz Toissa', 'Piz Uccello', 'Piz Varuna', 'Piz ZupÃ²', 'Pizzo Badile', 'Pizzo Campo Tencia', 'Pizzo Tambo /Tambohorn', 'Planggenstock', 'Plattenflue', 'Rautispitz', 'Regitzer Spitz', 'Rheinwaldhorn', 'Rienzenstock', 'Rigi-Kulm', 'Rinderhorn', 'Rossberg', 'Salbitschijen', 'SÃ¤ntis', 'SchÃ¤fler', 'Gross SchÃ¤rhorn', 'Schesaplana', 'Schiahorn', 'Schibenstoll', 'Schilthorn', 'Schinberg', 'SchlÃ¼echtli', 'Schrattenfluh', 'Schreckhorn', 'Schwalmis', 'Schwarzeberg', 'Selun', 'Sichelchamm', 'Sieben Hengste', 'Signalkuppe', 'Sigriswiler Rothorn', 'Silvrettahorn', 'Six Madun', 'Speer', 'Spitzmeilen', 'Stanserhorn', 'Stockhorn', 'Sustenhorn', 'Taminser Calanda', 'TÃ¤schhorn', 'Tinzenhorn', 'Titlis', 'TÃ¶di', 'Tomlishorn', 'Tour SalliÃ¨re', 'TschingelhÃ¶rner', 'Tweralpspitz', 'Uetliberg', 'Vanil Noir', 'VorderglÃ¤rnisch', 'VrenelisgÃ¤rtli', 'Wasenhorn', 'Weisshorn', 'Weissmies', 'Wetterhorn', 'Wildhorn', 'Wildhuser Schafberg', 'Wildstrubel', 'Gross WindgÃ¤llen', 'Wiriehore', 'Wissberg', 'Wissigstock', 'Wyssi Frau', 'Zervreilahorn', 'Zinalrothorn', 'Zindlenspitz', 'Zuestoll', 'Zumsteinspitze' ];
-            var len = mountains.length;
-            var data = [];
-            for (var i = 1; i <= 25000; i++) {
-              data.push({
-	        id: i,
-	        name: "A " + mountains[i % len] 
-	      });
-            }
-            $("#demo-input-lazy").tokenInput(data, {
-	      resultsFormatter: function(item) {
-	        return "<li>" + item['name'] + "<span>" + item['id'] + "</span></li>"
-	      },
-
-	    });
-        });
-        </script>
+      <input type="text" id="demo-input-lazy" name="blah" />
+      <input type="button" value="Submit" />
     </div>
-
-</body>
+  </body>
 </html>
