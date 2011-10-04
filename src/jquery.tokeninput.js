@@ -533,7 +533,6 @@ $.TokenList = function (input, url_or_data, settings) {
             checkTokenLimit();
         }
 
-        console.log(ctrlPressed);
         // Only clear search if CTRL key is not pressed
         if (!ctrlPressed) {
           // Clear input box
