@@ -18,35 +18,6 @@
 <body>
     <h1>jQuery Tokeninput Demos</h1>
 
-    <h2>Scrolling follows input box</h2>
-    <div style="height: 300px; width: 500px; z-index: 1004; border: 1px solid black; overflow: auto;">
-      <div style="height: 100px;">
-      </div>
-      <h3>Slide with the dropdown opened to see what happens</h3>
-      <input type="text" id="demo-input-scrolling" name="blah" />
-      <input type="button" value="Submit" />
-      <script type="text/javascript">
-      $(document).ready(function() {
-          $("#demo-input-scrolling").tokenInput([
-              {id: 7, name: "Ruby"},
-              {id: 11, name: "Python"},
-              {id: 13, name: "JavaScript"},
-              {id: 17, name: "ActionScript"},
-              {id: 19, name: "Scheme"},
-              {id: 23, name: "Lisp"},
-              {id: 29, name: "C#"},
-              {id: 31, name: "Fortran"},
-              {id: 37, name: "Visual Basic"},
-              {id: 41, name: "C"},
-              {id: 43, name: "C++"},
-              {id: 47, name: "Java"}
-              ], { preventDuplicates: true });
-      });
-      </script>
-      <div style="height: 350px;">
-      </div>
-    </div>
-
 
     <h2>Simple Server-Backed Search</h2>
     <div>
@@ -167,6 +138,20 @@
         $(document).ready(function() {
             $("#demo-input-prevent-duplicates").tokenInput("http://shell.loopj.com/tokeninput/tvshows.php", {
                 preventDuplicates: true
+            });
+        });
+        </script>
+    </div>
+
+    <h2 id="prevent-duplicates">No Duplicates, Don't Display Already Selected</h2>
+    <div>
+        <input type="text" id="demo-input-already-selected" name="blah" />
+        <input type="button" value="Submit" />
+        <script type="text/javascript">
+        $(document).ready(function() {
+            $("#demo-input-already-selected").tokenInput("http://shell.loopj.com/tokeninput/tvshows.php", {
+                preventDuplicates: true,
+                hideAlreadySelected: true
             });
         });
         </script>
@@ -475,5 +460,36 @@
         });
         </script>
     </div>
+
+
+    <h2>Scrolling Follows Input Box</h2>
+    <div style="height: 300px; width: 500px; z-index: 1004; border: 1px solid black; overflow: auto;">
+      <div style="height: 100px;">
+      </div>
+      <h3>Slide with the dropdown opened to see what happens</h3>
+      <input type="text" id="demo-input-scrolling" name="blah" />
+      <input type="button" value="Submit" />
+      <script type="text/javascript">
+      $(document).ready(function() {
+          $("#demo-input-scrolling").tokenInput([
+              {id: 7, name: "Ruby"},
+              {id: 11, name: "Python"},
+              {id: 13, name: "JavaScript"},
+              {id: 17, name: "ActionScript"},
+              {id: 19, name: "Scheme"},
+              {id: 23, name: "Lisp"},
+              {id: 29, name: "C#"},
+              {id: 31, name: "Fortran"},
+              {id: 37, name: "Visual Basic"},
+              {id: 41, name: "C"},
+              {id: 43, name: "C++"},
+              {id: 47, name: "Java"}
+          ]);
+      });
+      </script>
+      <div style="height: 350px;">
+      </div>
+    </div>
+
 </body>
 </html>
