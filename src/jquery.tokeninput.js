@@ -253,12 +253,25 @@ $.TokenList = function (input, url_or_data, settings) {
                         }
 
                         if(dropdown_item.length) {
-                            select_dropdown_item(dropdown_item);
+                            select_dropdown_item(dropdown_item, true);
                         }
                         return false;
                     }
                     break;
-
+                case KEY.PAGE_UP:
+                case KEY.PAGE_DOWN:
+                    if($(this).val()) {
+                        var $li = $(selected_dropdown_item);
+                        for (var i = 1; i < visible_dropdown_items; i++) {
+                            $li = (event.keyCode === KEY.PAGE_UP) ?
+                                $li.prev() : $li.next();
+                            if (!$li.length) {
+                                break;
+                            }
+                            select_dropdown_item($li, true);
+                        }
+                    }
+                    break;
                 case KEY.BACKSPACE:
                     previous_token = input_token.prev();
 
@@ -659,7 +672,6 @@ $.TokenList = function (input, url_or_data, settings) {
             return el[settings.tokenValue];
         });
         hidden_input.val(token_values.join(settings.tokenDelimiter));
-
     }
 
     // Hide and clear the results dropdown
@@ -669,7 +681,7 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     function show_dropdown() {
-        var dropdown_height = $("ul", dropdown).height(),
+        var dropdown_height = dropdown.height(),
             bottom_height_left = $(document).height() -
               $(token_list).offset().top - $(token_list).outerHeight(),
             top_height_left = $(token_list).offset().top;
@@ -728,47 +740,58 @@ $.TokenList = function (input, url_or_data, settings) {
 
     function renderDropdownContent(results, result_count, query) {
         var from, to;
+
         if (results) {
-	    dropdown_data = {
-		'items': results,
-		'count': result_count,
-		'query': query
-	    };
+            dropdown_data = {
+                'items': results,
+                'count': result_count,
+                'query': query
+            };
+            visible_dropdown_items = 0;
+            rendered_from = 0;
+            rendered_to = 0;
         }
 
         if (lazy_rendering) {
+            var visible_from, visible_to;
             if (dropdown_item_height) {
                 // Check what needs to be rendered.
                 var pos = dropdown.scrollTop();
                 var visible_from = Math.floor(pos / dropdown_item_height);
-                var visible_to = visible_from + visible_dropdown_items;
-
-                // Check whether the currently visible area is rendered
-                if ((visible_from >= rendered_from) && (visible_to <= rendered_to)) {
-                    return;
-                }
-
-                from = Math.max(0, visible_from -
-                  Math.floor((result_limit - visible_dropdown_items) / 2));
-                to = from + result_limit;
-                if (to >= dropdown_data.count) {
-                    to = dropdown_data.count - 1;
-                    from = Math.max(0, from - result_limit);
-                }
-                if (rendered_from === from) {
-                    return;
-                }
+                var visible_to = visible_from + visible_dropdown_items + 1;
             } else {
-                // The result item's height is not yet known.  Just render
-                // the maximum allowed number of lines.
-                from = 0;
-                to = Math.min(result_limit, dropdown_data.count - 1);
+                visible_from = 0;
+                visible_to = result_limit;
+            }
 
-                dropdown.scrollTop(0);
+            // Check whether the currently visible area is already rendered
+            if (visible_from > rendered_from && visible_to < rendered_to) {
+              return;
+            }
+
+            from = Math.max(0, visible_from -
+                Math.floor((result_limit - visible_dropdown_items) / 2));
+            to = from + result_limit;
+
+            if (to >= dropdown_data.count) {
+                to = dropdown_data.count - 1;
+                from = Math.max(0, from - result_limit);
             }
         } else {
+            if (!results) {
+                return;
+            }
             from = 0;
             to = result_count - 1;
+        }
+
+
+        var selected_idx;
+        if (selected_dropdown_item) {
+            selected_idx = rendered_from + $(selected_dropdown_item).index();
+            deselect_dropdown_item($(selected_dropdown_item));
+        } else {
+            selected_idx = 0;
         }
 
         $item_list.empty();
@@ -781,15 +804,18 @@ $.TokenList = function (input, url_or_data, settings) {
                 settings.classes.dropdownItem2;
 
             li = find_value_and_highlight_term(
-                li, value[settings.propertyToSearch], query);
+                li, value[settings.propertyToSearch], dropdown_data.query);
 
             var $li = $(li)
                 .addClass(css_class)
                 .appendTo($item_list);
 
             if (i === 0) {
-                select_dropdown_item($li);
                 dropdown_item_height = $li.outerHeight(true);
+            }
+
+            if (i === selected_idx) {
+                select_dropdown_item($li);
             }
 
             if (!visible_dropdown_items &&
@@ -797,14 +823,14 @@ $.TokenList = function (input, url_or_data, settings) {
                 // Dropdown starts overflowing. Therefore it reached its
                 // maximum vertical size.
                 visible_dropdown_items =
-                    Math.ceil(dd.clientHeight / dropdown_item_height) + 1;
-            }
+                    Math.ceil(dd.clientHeight / dropdown_item_height);
+             }
             $.data($li.get(0), "tokeninput", value);
         }
-
-        // Adjust upper and lower place holders, if necessary.
         rendered_from = from;
         rendered_to = to;
+
+        // Adjust upper and lower place holders, if necessary.
         if (lazy_rendering) {
             $upper_dummy.height(from * dropdown_item_height);
             $lower_dummy.height(dropdown_item_height *
@@ -850,8 +876,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
             // Apply rendering strategy:
             if (lazy_rendering) {
-		result_limit =
-		    Math.min(settings.lazyRenderingThreshold, result_count);
+                result_limit = Math.min(settings.lazyRenderingThreshold, result_count);
 
                 $upper_dummy = $("<div />")
                     .css({
@@ -887,7 +912,6 @@ $.TokenList = function (input, url_or_data, settings) {
 
                 renderDropdownContent(results, result_count, query);
             } else {
-                // "Swotty" rendering strategy
                 $item_list = $("<ul>")
                     .appendTo(dropdown)
                     .mouseover(function (event) {
@@ -923,7 +947,7 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     // Highlight an item in the results dropdown
-    function select_dropdown_item (item) {
+    function select_dropdown_item (item, autoscroll) {
         if(item) {
             if(selected_dropdown_item) {
                 deselect_dropdown_item($(selected_dropdown_item));
@@ -931,6 +955,19 @@ $.TokenList = function (input, url_or_data, settings) {
 
             item.addClass(settings.classes.selectedDropdownItem);
             selected_dropdown_item = item.get(0);
+
+            // Make sure that the selected item is visible.
+            if (autoscroll) {
+                var top = Math.floor(item.position()['top']);
+                var pos;
+                if (top < 0) {
+                    dropdown.scrollTop(dropdown.scrollTop() + top);
+                    // renderDropdownContent();
+                } else if (top + dropdown_item_height > dropdown.height() + 1) {
+                    var delta = top + dropdown_item_height - dropdown.height();
+                    dropdown.scrollTop(dropdown.scrollTop() + delta);
+                }
+            }
         }
     }
 
@@ -1006,7 +1043,11 @@ $.TokenList = function (input, url_or_data, settings) {
 
                     // only populate the dropdown if the results are associated with the active search query
                   if(input_box.val().toLowerCase() === query) {
-                      populate_dropdown(query, settings.jsonContainer ? results[settings.jsonContainer] : results);
+                      var data = settings.jsonContainer ?
+                        results[settings.jsonContainer] : results;
+                      var count = settings.jsonResultCount ?
+                        results[settings.jsonResultCount] : data.length;
+                      populate_dropdown(query, data, count);
                   }
                 };
 
