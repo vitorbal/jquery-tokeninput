@@ -20,7 +20,7 @@ var DEFAULT_SETTINGS = {
     jsonContainer: null,
     contentType: "json",
 
-	// Prepopulation settings
+    // Prepopulation settings
     prePopulate: null,
     processPrePopulate: false,
 
@@ -38,6 +38,7 @@ var DEFAULT_SETTINGS = {
     tokenLimit: null,
     tokenDelimiter: ",",
     preventDuplicates: false,
+    hideAlreadySelected: false,
     tokenValue: "id",
 
     // Callbacks
@@ -58,6 +59,8 @@ var DEFAULT_CLASSES = {
     selectedToken: "token-input-selected-token",
     highlightedToken: "token-input-highlighted-token",
     dropdown: "token-input-dropdown",
+    dropdownTopOrientation: "token-input-dropdown-top",
+    dropdownBottomOrientation: "token-input-dropdown-bottom",
     dropdownItem: "token-input-dropdown-item",
     dropdownItem2: "token-input-dropdown-item2",
     selectedDropdownItem: "token-input-selected-dropdown-item",
@@ -87,7 +90,8 @@ var KEY = {
     RIGHT: 39,
     DOWN: 40,
     NUMPAD_ENTER: 108,
-    COMMA: 188
+    COMMA: 188,
+    MAC_COMMAND: 91
 };
 
 // Additional public (exposed) methods
@@ -180,6 +184,9 @@ $.TokenList = function (input, url_or_data, settings) {
     // Keep track of the timeout, old vals
     var timeout;
     var input_val;
+
+    // Keep track of the state of the CTRL key
+    var ctrlPressed = false;
 
     // Create a new text input an attach keyup events
     var input_box = $("<input type=\"text\"  autocomplete=\"off\">")
@@ -276,13 +283,23 @@ $.TokenList = function (input, url_or_data, settings) {
                   return true;
 
                 default:
-                    if(String.fromCharCode(event.which)) {
-                        // set a timeout just long enough to let this function finish.
-                        setTimeout(function(){do_search();}, 5);
+                    if (event.ctrlKey || event.which === KEY.MAC_COMMAND) {
+                      ctrlPressed = true;
+                    } else {
+                      if(String.fromCharCode(event.which)) {
+                          // set a timeout just long enough to let this function finish.
+                          setTimeout(function(){do_search();}, 5);
+                      }
                     }
                     break;
             }
-        });
+        })
+        .keyup(function (event) {
+            if (event.ctrlKey || event.which === KEY.MAC_COMMAND) {
+              ctrlPressed = false;
+            }
+        }
+        );
 
     // Keep a reference to the original input box
     var hidden_input = $(input)
@@ -343,9 +360,14 @@ $.TokenList = function (input, url_or_data, settings) {
         .append(input_box);
 
     // The list to store the dropdown items in
+    var dropdown_parent = $("<div>")
+        .insertAfter(token_list)
+        .css({
+            position: "relative"
+        });
     var dropdown = $("<div>")
         .addClass(settings.classes.dropdown)
-        .appendTo("body")
+        .appendTo(dropdown_parent)
         .hide()
         .css('position', 'absolute');
 
@@ -518,11 +540,14 @@ $.TokenList = function (input, url_or_data, settings) {
             checkTokenLimit();
         }
 
-        // Clear input box
-        input_box.val("");
+        // Only clear search if CTRL key is not pressed
+        if (!ctrlPressed) {
+          // Clear input box
+          input_box.val("");
 
-        // Don't show the help dropdown, they've got the idea
-        hide_dropdown();
+          // Don't show the help dropdown, they've got the idea
+          hide_dropdown();
+        }
 
         // Execute the onAdd callback if defined
         if($.isFunction(callback)) {
@@ -631,28 +656,36 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     function show_dropdown() {
-        // Set an appropriate z-index for the dropdown.
-        var dropdown_z = parseInt(dropdown.css('z-index'));
-        if (isNaN(dropdown_z)) {
-            dropdown_z = 1;
-        }
-        token_list.parents().each(function(i,el) {
-            dropdown_z = Math.max(parseInt($(el).css('z-index')) || 0,
-                dropdown_z);
-        });
+        var dropdown_height = $("ul", dropdown).height(),
+            bottom_height_left = $(document).height() -
+              $(token_list).offset().top - $(token_list).outerHeight(),
+            top_height_left = $(token_list).offset().top;
 
-        // Update width, if necessary.
-        if (update_input_token_width) {
-          dropdown.width(token_list.width());
+        if (dropdown_height > bottom_height_left &&
+              dropdown_height < top_height_left) {
+            // Show dropdown to the top, ergo 'dropup'
+            dropdown
+                .css({
+                    bottom: $(token_list).outerHeight(),
+                    top: '',
+                    left: 0,
+                    width: token_list.width() + 'px'
+                })
+                .removeClass(settings.classes.dropdownBottomOrientation)
+                .addClass(settings.classes.dropdownTopOrientation)
+                .show();
+        } else {
+            dropdown
+                .css({
+                    top: 0,
+                    bottom: '',
+                    left: 0,
+                    width: token_list.width() + 'px'
+                })
+                .removeClass(settings.classes.dropdownTopOrientation)
+                .addClass(settings.classes.dropdownBottomOrientation)
+                .show();
         }
-
-        dropdown
-            .css({
-                top: $(token_list).offset().top + $(token_list).outerHeight(),
-                left: $(token_list).offset().left,
-                'z-index': dropdown_z
-            })
-            .show();
     }
 
     function show_dropdown_searching () {
@@ -671,11 +704,13 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Highlight the query part of the search term
     function highlight_term(value, term) {
-        return value.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + term + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<b>$1</b>");
+        return value.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
+      escapeRegExp(term) + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<b>$1</b>");
     }
 
     function find_value_and_highlight_term(template, value, term) {
-        return template.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + value + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
+        return template.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
+      escapeRegExp(value) + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
     }
 
     // Populate the results dropdown with some results
@@ -692,28 +727,39 @@ $.TokenList = function (input, url_or_data, settings) {
                     hidden_input.change();
                     return false;
                 })
-                .hide();
+                .hide(),
+              // Track if any results should be displayed
+              noResultsToDisplay = true;
 
             $.each(results, function(index, value) {
-                var this_li = settings.resultsFormatter(value);
+                if(!(settings.preventDuplicates && settings.hideAlreadySelected) ||
+                  !isSelected(value[settings.propertyToSearch])) {
+                    var this_li = settings.resultsFormatter(value);
 
-                this_li = find_value_and_highlight_term(this_li ,value[settings.propertyToSearch], query);
+                    this_li = find_value_and_highlight_term(this_li ,value[settings.propertyToSearch], query);
 
-                this_li = $(this_li).appendTo(dropdown_ul);
+                    this_li = $(this_li).appendTo(dropdown_ul);
 
-                if(index % 2) {
-                    this_li.addClass(settings.classes.dropdownItem);
-                } else {
-                    this_li.addClass(settings.classes.dropdownItem2);
+                    if(index % 2) {
+                        this_li.addClass(settings.classes.dropdownItem);
+                    } else {
+                        this_li.addClass(settings.classes.dropdownItem2);
+                    }
+
+                    // If this is the first result to be displayed, it should
+                    // be automatically selected when the dropdown is shown
+                    if(noResultsToDisplay) {
+                        select_dropdown_item(this_li);
+                        noResultsToDisplay = false;
+                    }
+
+                    $.data(this_li.get(0), "tokeninput", value);
                 }
-
-                if(index === 0) {
-                    select_dropdown_item(this_li);
-                }
-
-                $.data(this_li.get(0), "tokeninput", value);
             });
 
+            if (noResultsToDisplay && settings.noResultsText) {
+                dropdown.html("<p>"+settings.noResultsText+"</p>");
+            }
             show_dropdown();
 
             if(settings.animateDropdown) {
@@ -727,6 +773,17 @@ $.TokenList = function (input, url_or_data, settings) {
                 show_dropdown();
             }
         }
+    }
+
+    //returns true if the value is already selected
+    function isSelected(name) {
+        var itemSelected = false;
+        $.each(saved_tokens, function(saved_index, saved_value){
+            if(saved_value[settings.propertyToSearch] == name){
+                return itemSelected = true;
+            }
+        });
+        return itemSelected;
     }
 
     // Highlight an item in the results dropdown
@@ -841,6 +898,11 @@ $.TokenList = function (input, url_or_data, settings) {
             url = settings.url.call();
         }
         return url;
+    }
+
+    // Escape special characters which are used in regular expressions
+    function escapeRegExp(text) {
+        return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
     }
 };
 
