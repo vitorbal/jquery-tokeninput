@@ -191,14 +191,15 @@ $.TokenList = function (input, url_or_data, settings) {
     var ctrlPressed = false;
 
     // Lazy Rendering
-    var result_limit;
-    var lazy_rendering;
-    var dropdown_render_delay;
-    var dropdown_item_height;
-    var rendered_from, rendered_to;
-    var dropdown_data;
-    var visible_dropdown_items;
-    var $upper_dummy, $lower_dummy, $item_list;
+    var $item_list,
+        $lower_dummy,
+        $upper_dummy,
+        dropdown_data,
+        dropdown_item_height,
+        lazy_rendering,
+        rendered_from, rendered_to,
+        result_limit,
+        visible_dropdown_items;
 
     // Create a new text input an attach keyup events
     var input_box = $("<input type=\"text\"  autocomplete=\"off\">")
@@ -842,12 +843,8 @@ $.TokenList = function (input, url_or_data, settings) {
         if (!lazy_rendering) {
             return;
         }
-        if (dropdown_render_delay) {
-            clearTimeout(dropdown_render_delay);
-            dropdown_render_delay = undefined;
-        }
-
-        dropdown_render_delay = setTimeout(function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(function() {
             renderDropdownContent();
         }, 100);
     }
@@ -878,16 +875,7 @@ $.TokenList = function (input, url_or_data, settings) {
             if (lazy_rendering) {
                 result_limit = Math.min(settings.lazyRenderingThreshold, result_count);
 
-                $upper_dummy = $("<div />")
-                    .css({
-                        background: 'transparent',
-                        border: 0,
-                        height: 0,
-                        margin: 0,
-                        padding: 0,
-                        width: 'auto'
-                    })
-                    .appendTo(dropdown);
+                $upper_dummy = $("<div />").appendTo(dropdown);
 
                 $item_list = $("<ul>")
                     .appendTo(dropdown)
@@ -899,16 +887,7 @@ $.TokenList = function (input, url_or_data, settings) {
                         hidden_input.change();
                         return false;
                     });
-                $lower_dummy = $("<div />")
-                    .css({
-                        background: 'transparent',
-                        border: 0,
-                        height: 0,
-                        margin: 0,
-                        padding: 0,
-                        width: 'auto'
-                    })
-                    .appendTo(dropdown);
+                $lower_dummy = $("<div />").appendTo(dropdown);
 
                 renderDropdownContent(results, result_count, query);
             } else {
@@ -1005,7 +984,7 @@ $.TokenList = function (input, url_or_data, settings) {
         var cache_key = query + computeURL();
         var cached_results = cache.get(cache_key);
         if(cached_results) {
-                populate_dropdown(query, cached_results, cached_results.length);
+            populate_dropdown(query, cached_results, cached_results.length);
         } else {
             // Are we doing an ajax search or local data search?
             if(settings.url) {
@@ -1041,7 +1020,7 @@ $.TokenList = function (input, url_or_data, settings) {
                     }
                     cache.add(cache_key, settings.jsonContainer ? results[settings.jsonContainer] : results);
 
-                    // only populate the dropdown if the results are associated with the active search query
+                  // only populate the dropdown if the results are associated with the active search query
                   if(input_box.val().toLowerCase() === query) {
                       var data = settings.jsonContainer ?
                         results[settings.jsonContainer] : results;
@@ -1059,13 +1038,11 @@ $.TokenList = function (input, url_or_data, settings) {
                     return row[settings.propertyToSearch].toLowerCase().indexOf(query.toLowerCase()) > -1;
                 });
 
-                var start = new Date().getTime();
                 if($.isFunction(settings.onResult)) {
                     results = settings.onResult.call(hidden_input, results);
                 }
                 cache.add(cache_key, results);
                 populate_dropdown(query, results, results.length);
-                end = new Date().getTime();
             }
         }
     }
