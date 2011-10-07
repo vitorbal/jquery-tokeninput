@@ -197,7 +197,9 @@ $.TokenList = function (input, url_or_data, settings) {
         dropdown_data,
         dropdown_item_height,
         lazy_rendering,
+        mouse_over_dropdown,
         rendered_from, rendered_to,
+        restore_focus,
         result_limit,
         visible_dropdown_items;
 
@@ -208,13 +210,23 @@ $.TokenList = function (input, url_or_data, settings) {
         })
         .attr("id", settings.idPrefix + input.id)
         .focus(function () {
+            if (restore_focus) {
+                return;
+            }
             if (settings.tokenLimit === null || settings.tokenLimit !== token_count) {
                 show_dropdown_hint();
             }
         })
         .blur(function () {
-            hide_dropdown();
-            $(this).val("");
+            if (mouse_over_dropdown) {
+                restore_focus = true;
+                input_box.focus();
+                return;
+            } else {
+                hide_dropdown();
+                $(this).val("");
+                restore_focus = false;
+            }
         })
         .bind("keyup keydown blur update", resize_input)
         .keydown(function (event) {
@@ -396,7 +408,9 @@ $.TokenList = function (input, url_or_data, settings) {
         .appendTo(dropdown_parent)
         .hide()
         .css({'position': 'absolute', 'overflow-y': 'auto'})
-        .scroll(dropdownScrollHandler);
+        .scroll(dropdownScrollHandler)
+        .mouseover(function() { mouse_over_dropdown = true; })
+        .mouseout(function() { mouse_over_dropdown = false; });
 
     // Magic element to help us resize the text input
     var input_resizer = $("<tester/>")
@@ -840,9 +854,10 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     function dropdownScrollHandler() {
-        if (!lazy_rendering) {
+        if (!lazy_rendering || !$item_list.is(":visible")) {
             return;
         }
+
         clearTimeout(timeout);
         timeout = setTimeout(function() {
             renderDropdownContent();
