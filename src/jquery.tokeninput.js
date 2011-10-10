@@ -195,6 +195,7 @@ $.TokenList = function (input, url_or_data, settings) {
         $lower_dummy,
         $upper_dummy,
         dropdown_data,
+        dropdown_is_above,
         dropdown_item_height,
         lazy_rendering,
         mouse_over_dropdown,
@@ -686,7 +687,11 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Hide and clear the results dropdown
     function hide_dropdown () {
-        dropdown.hide().empty();
+        dropdown
+            .hide()
+            .scrollTop(0)
+            .height('inherit')
+            .empty();
         selected_dropdown_item = null;
     }
 
@@ -701,18 +706,34 @@ $.TokenList = function (input, url_or_data, settings) {
             dropdown.css('z-index', z + 1);
         }
 
-        dropdown
-            .css({
-                top: token_list.offset().top + token_list.outerHeight(),
-                left: token_list.offset().left,
-                width: token_list.width()
-            })
-            .show();
+        if (dropdown_is_above) {
+            dropdown
+                .css({
+                    top: token_list.offset().top - dropdown.outerHeight(),
+                    left: token_list.offset().left,
+                    width: token_list.width()
+                })
+                .removeClass(settings.classes.dropdownBottomOrientation)
+                .addClass(settings.classes.dropdownTopOrientation)
+                .show();
+        } else {
+            dropdown
+                .css({
+                    top: token_list.offset().top + token_list.outerHeight(),
+                    left: token_list.offset().left,
+                    width: token_list.width()
+                })
+                .removeClass(settings.classes.dropdownTopOrientation)
+                .addClass(settings.classes.dropdownBottomOrientation)
+                .show();
+        }
+
     }
 
     function show_dropdown_searching () {
         if(settings.searchingText) {
             dropdown.html("<p>"+settings.searchingText+"</p>");
+            dropdown_is_above = false;
             show_dropdown();
         }
     }
@@ -720,6 +741,7 @@ $.TokenList = function (input, url_or_data, settings) {
     function show_dropdown_hint () {
         if(settings.hintText) {
             dropdown.html("<p>"+settings.hintText+"</p>");
+            dropdown_is_above = false;
             show_dropdown();
         }
     }
@@ -782,6 +804,16 @@ $.TokenList = function (input, url_or_data, settings) {
             to = result_count - 1;
         }
 
+        // Calculate the available space for the dropdown above and below the
+        // token box
+        var $w = $(window);
+        var space_below = Math.floor($w.height() + $w.scrollTop() -
+            (token_list.offset().top + token_list.outerHeight()));
+        var space_above = Math.floor(token_list.offset().top - $w.scrollTop());
+        var dropdown_space = Math.max(space_above, space_below);
+
+        // By default, the dropdown is placed below the token box
+        dropdown_is_above = false;
 
         var selected_idx;
         if (selected_dropdown_item) {
@@ -815,15 +847,25 @@ $.TokenList = function (input, url_or_data, settings) {
                 select_dropdown_item($li);
             }
 
-            if (!visible_dropdown_items &&
-              (dd.scrollHeight > dd.clientHeight)) {
-                // Dropdown starts overflowing. Therefore it reached its
-                // maximum vertical size.
-                visible_dropdown_items =
-                    Math.ceil(dd.clientHeight / dropdown_item_height);
-             }
+            if (!visible_dropdown_items) {
+                // The "+ 2" s necessary, because IE does not calculate the
+                // clientHeight very accurately:
+                if (dd.scrollHeight > dd.clientHeight + 2) {
+                    // Dropdown starts overflowing. Therefore it reached its
+                    // maximum vertical size ('height' or 'max-height').
+                    visible_dropdown_items =
+                        Math.ceil(dd.clientHeight / dropdown_item_height);
+                } else if (dd.clientHeight > dropdown_space) {
+                    // Dropdown goes beyond upper or lower edge of the window.
+                    visible_dropdown_items =
+                        Math.floor(dd.clientHeight / dropdown_item_height);
+                    dropdown.height(dropdown_space - 1);
+                }
+            }
             $.data($li.get(0), "tokeninput", value);
         }
+        dropdown_is_above = (dd.clientHeight > space_below);
+
         rendered_from = from;
         rendered_to = to;
 
