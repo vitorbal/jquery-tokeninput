@@ -397,15 +397,10 @@ $.TokenList = function (input, url_or_data, settings) {
         .appendTo(token_list)
         .append(input_box);
 
-    // The list to store the dropdown items in
-    var dropdown_parent = $("<div>")
-        .insertAfter(token_list)
-        .css({
-            position: "relative"
-        });
+    // The dropdown box itself
     var dropdown = $("<div>")
         .addClass(settings.classes.dropdown)
-        .appendTo(dropdown_parent)
+        .appendTo($('body'))
         .hide()
         .css({'position': 'absolute', 'overflow-y': 'auto'})
         .scroll(dropdownScrollHandler)
@@ -696,36 +691,23 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     function show_dropdown() {
-        var dropdown_height = dropdown.height(),
-            bottom_height_left = $(document).height() -
-              $(token_list).offset().top - $(token_list).outerHeight(),
-            top_height_left = $(token_list).offset().top;
-
-        if (dropdown_height > bottom_height_left &&
-              dropdown_height < top_height_left) {
-            // Show dropdown to the top, ergo 'dropup'
-            dropdown
-                .css({
-                    bottom: $(token_list).outerHeight(),
-                    top: '',
-                    left: 0,
-                    width: token_list.width() + 'px'
-                })
-                .removeClass(settings.classes.dropdownBottomOrientation)
-                .addClass(settings.classes.dropdownTopOrientation)
-                .show();
-        } else {
-            dropdown
-                .css({
-                    top: 0,
-                    bottom: '',
-                    left: 0,
-                    width: token_list.width() + 'px'
-                })
-                .removeClass(settings.classes.dropdownTopOrientation)
-                .addClass(settings.classes.dropdownBottomOrientation)
-                .show();
+        var z = parseInt(dropdown.css('z-index'));
+        if (isNaN(z)) {
+            // The dropdown does not have a z-Index.  Set an appropriate value.
+            z = 1;
+            token_list.parents().each(function(i,el) {
+                    z = Math.max(parseInt($(el).css('z-index')) || 0, z);
+                });
+            dropdown.css('z-index', z + 1);
         }
+
+        dropdown
+            .css({
+                top: token_list.offset().top + token_list.outerHeight(),
+                left: token_list.offset().left,
+                width: token_list.width()
+            })
+            .show();
     }
 
     function show_dropdown_searching () {
