@@ -33,8 +33,12 @@ var DEFAULT_SETTINGS = {
     animateDropdown: true,
     lazyRenderingThreshold: 150,
     theme: null,
-    resultsFormatter: function(item){ return "<li>" + item[this.propertyToSearch]+ "</li>" },
-    tokenFormatter: function(item) { return "<li><p>" + item[this.propertyToSearch] + "</p></li>" },
+    resultsFormatter: function(item) {
+        return "<li>" + item[this.propertyToSearch]+ "</li>";
+    },
+    tokenFormatter: function(item) {
+        return "<li><p>" + item[this.propertyToSearch] + "</p></li>";
+    },
 
     // Tokenization settings
     tokenLimit: null,
@@ -120,7 +124,7 @@ var methods = {
     get: function() {
         return this.data("tokenInputObject").getTokens();
     }
-}
+};
 
 // Expose the .tokenInput function to jQuery as a plugin
 $.fn.tokenInput = function (method) {
@@ -144,7 +148,7 @@ $.TokenList = function (input, url_or_data, settings) {
         settings.url = url_or_data;
 
         // If the URL is a function, evaluate it here to do our initalization work
-        var url = computeURL();
+        var url = compute_url();
 
         // Make a smart guess about cross-domain if it wasn't explicitly specified
         if(settings.crossDomain === undefined) {
@@ -229,7 +233,20 @@ $.TokenList = function (input, url_or_data, settings) {
                 restore_focus = false;
             }
         })
-        .bind("keyup keydown blur update", resize_input)
+        .bind("keyup keydown blur update", function() {
+            if (input_val === (input_val = input_box.val())) {
+                return;
+            }
+
+            // Enter new content into resizer and resize input accordingly
+            var escaped = input_val
+                .replace(/&/g, '&amp;')
+                .replace(/\s/g,' ')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            input_resizer.html(escaped);
+            input_box.width(input_resizer.width() + 30);
+        })
         .keydown(function (event) {
             var previous_token;
             var next_token;
@@ -310,12 +327,12 @@ $.TokenList = function (input, url_or_data, settings) {
                 case KEY.ENTER:
                 case KEY.NUMPAD_ENTER:
                 case KEY.COMMA:
-                  if(selected_dropdown_item) {
-                    add_token($(selected_dropdown_item).data("tokeninput"));
-                    hidden_input.change();
-                    return false;
-                  }
-                  break;
+                    if(selected_dropdown_item) {
+                        add_token($(selected_dropdown_item).data("tokeninput"));
+                        hidden_input.change();
+                        return false;
+                    }
+                    break;
 
                 case KEY.ESCAPE:
                   hide_dropdown();
@@ -342,14 +359,10 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Keep a reference to the original input box
     var hidden_input = $(input)
-                           .hide()
-                           .val("")
-                           .focus(function () {
-                               input_box.focus();
-                           })
-                           .blur(function () {
-                               input_box.blur();
-                           });
+        .hide()
+        .val("")
+        .focus(function () { input_box.focus(); })
+        .blur(function () { input_box.blur(); });
 
     // Keep a reference to the selected token and dropdown item
     var selected_token = null;
@@ -390,7 +403,8 @@ $.TokenList = function (input, url_or_data, settings) {
     // In case there is no fixed width, the dropdown's width has to be
     // adjusted every time it is displayed
     var tlw = token_list.css('width');
-    var update_input_token_width = (parseInt(tlw) == 0) || !tlw.match(/px$/);
+    var update_input_token_width = (parseInt(tlw, 10) === 0) ||
+        !tlw.match(/px$/);
 
     // The token holding the input box
     var input_token = $("<li />")
@@ -404,7 +418,13 @@ $.TokenList = function (input, url_or_data, settings) {
         .appendTo($('body'))
         .hide()
         .css({'position': 'absolute', 'overflow-y': 'auto'})
-        .scroll(dropdownScrollHandler)
+        .scroll(function() {
+            if (!lazy_rendering || !$item_list.is(":visible")) {
+                return;
+            }
+            clearTimeout(timeout);
+            timeout = setTimeout(function() { render_dropdown_content(); }, 100);
+        })
         .mouseover(function() { mouse_over_dropdown = true; })
         .mouseout(function() { mouse_over_dropdown = false; });
 
@@ -432,7 +452,7 @@ $.TokenList = function (input, url_or_data, settings) {
     if(li_data && li_data.length) {
         $.each(li_data, function (index, value) {
             insert_token(value);
-            checkTokenLimit();
+            check_token_limit();
         });
     }
 
@@ -451,11 +471,11 @@ $.TokenList = function (input, url_or_data, settings) {
                 delete_token($(this));
             }
         });
-    }
+    };
 
     this.add = function(item) {
         add_token(item);
-    }
+    };
 
     this.remove = function(item) {
         token_list.children("li").each(function() {
@@ -473,31 +493,22 @@ $.TokenList = function (input, url_or_data, settings) {
                 }
             }
         });
-    }
+    };
 
     this.getTokens = function() {
         return saved_tokens;
-    }
+    };
 
     //
     // Private functions
     //
 
-    function checkTokenLimit() {
+    function check_token_limit() {
         if(settings.tokenLimit !== null && token_count >= settings.tokenLimit) {
             input_box.hide();
             hide_dropdown();
             return;
         }
-    }
-
-    function resize_input() {
-        if(input_val === (input_val = input_box.val())) {return;}
-
-        // Enter new content into resizer and resize input accordingly
-        var escaped = input_val.replace(/&/g, '&amp;').replace(/\s/g,' ').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        input_resizer.html(escaped);
-        input_box.width(input_resizer.width() + 30);
     }
 
     function is_printable_character(keycode) {
@@ -530,7 +541,10 @@ $.TokenList = function (input, url_or_data, settings) {
         $.data(this_token.get(0), "tokeninput", item);
 
         // Save this token for duplicate checking
-        saved_tokens = saved_tokens.slice(0,selected_token_index).concat([token_data]).concat(saved_tokens.slice(selected_token_index));
+        saved_tokens = saved_tokens
+            .slice(0,selected_token_index)
+            .concat([token_data])
+            .concat(saved_tokens.slice(selected_token_index));
         selected_token_index++;
 
         // Update the hidden input
@@ -548,7 +562,7 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     // Add a token to the token list based on user input
-    function add_token (item) {
+    function add_token(item) {
         var callback = settings.onAdd;
 
         // See if the token already exists and select it if we don't want duplicates
@@ -572,18 +586,18 @@ $.TokenList = function (input, url_or_data, settings) {
         }
 
         // Insert the new tokens
-        if(settings.tokenLimit == null || token_count < settings.tokenLimit) {
+        if(settings.tokenLimit === null || token_count < settings.tokenLimit) {
             insert_token(item);
-            checkTokenLimit();
+            check_token_limit();
         }
 
         // Only clear search if CTRL key is not pressed
         if (!ctrlPressed) {
-          // Clear input box
-          input_box.val("");
+            // Clear input box
+            input_box.val("");
 
-          // Don't show the help dropdown, they've got the idea
-          hide_dropdown();
+            // Don't show the help dropdown, they've got the idea
+            hide_dropdown();
         }
 
         // Execute the onAdd callback if defined
@@ -593,7 +607,7 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     // Select a token in the token list
-    function select_token (token) {
+    function select_token(token) {
         token.addClass(settings.classes.selectedToken);
         selected_token = token.get(0);
 
@@ -640,13 +654,15 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     // Delete a token from the token list
-    function delete_token (token) {
+    function delete_token(token) {
         // Remove the id from the saved list
         var token_data = $.data(token.get(0), "tokeninput");
         var callback = settings.onDelete;
 
         var index = token.prevAll().length;
-        if(index > selected_token_index) index--;
+        if (index > selected_token_index) {
+            index--;
+        }
 
         // Delete the token
         token.remove();
@@ -657,7 +673,9 @@ $.TokenList = function (input, url_or_data, settings) {
 
         // Remove this token from the saved list
         saved_tokens = saved_tokens.slice(0,index).concat(saved_tokens.slice(index+1));
-        if(index < selected_token_index) selected_token_index--;
+        if (index < selected_token_index) {
+            selected_token_index--;
+        }
 
         // Update the hidden input
         update_hidden_input(saved_tokens, hidden_input);
@@ -686,7 +704,7 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     // Hide and clear the results dropdown
-    function hide_dropdown () {
+    function hide_dropdown() {
         dropdown
             .hide()
             .scrollTop(0)
@@ -696,13 +714,13 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     function show_dropdown() {
-        var z = parseInt(dropdown.css('z-index'));
+        var z = parseInt(dropdown.css('z-index'), 10);
         if (isNaN(z)) {
             // The dropdown does not have a z-Index.  Set an appropriate value.
             z = 1;
             token_list.parents().each(function(i,el) {
-                    z = Math.max(parseInt($(el).css('z-index')) || 0, z);
-                });
+                z = Math.max(parseInt($(el).css('z-index'), 10) || 0, z);
+            });
             dropdown.css('z-index', z + 1);
         }
 
@@ -727,10 +745,9 @@ $.TokenList = function (input, url_or_data, settings) {
                 .addClass(settings.classes.dropdownBottomOrientation)
                 .show();
         }
-
     }
 
-    function show_dropdown_searching () {
+    function show_dropdown_searching() {
         if(settings.searchingText) {
             dropdown.html("<p>"+settings.searchingText+"</p>");
             dropdown_is_above = false;
@@ -738,7 +755,7 @@ $.TokenList = function (input, url_or_data, settings) {
         }
     }
 
-    function show_dropdown_hint () {
+    function show_dropdown_hint() {
         if(settings.hintText) {
             dropdown.html("<p>"+settings.hintText+"</p>");
             dropdown_is_above = false;
@@ -749,15 +766,15 @@ $.TokenList = function (input, url_or_data, settings) {
     // Highlight the query part of the search term
     function highlight_term(value, term) {
         return value.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
-      escapeRegExp(term) + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<b>$1</b>");
+      escape_regexp(term) + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<b>$1</b>");
     }
 
     function find_value_and_highlight_term(template, value, term) {
         return template.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
-      escapeRegExp(value) + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
+      escape_regexp(value) + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
     }
 
-    function renderDropdownContent(results, result_count, query) {
+    function render_dropdown_content(results, result_count, query) {
         var from, to;
 
         if (results) {
@@ -776,8 +793,8 @@ $.TokenList = function (input, url_or_data, settings) {
             if (dropdown_item_height) {
                 // Check what needs to be rendered.
                 var pos = dropdown.scrollTop();
-                var visible_from = Math.floor(pos / dropdown_item_height);
-                var visible_to = visible_from + visible_dropdown_items + 1;
+                visible_from = Math.floor(pos / dropdown_item_height);
+                visible_to = visible_from + visible_dropdown_items + 1;
             } else {
                 visible_from = 0;
                 visible_to = result_limit;
@@ -877,17 +894,6 @@ $.TokenList = function (input, url_or_data, settings) {
         }
     }
 
-    function dropdownScrollHandler() {
-        if (!lazy_rendering || !$item_list.is(":visible")) {
-            return;
-        }
-
-        clearTimeout(timeout);
-        timeout = setTimeout(function() {
-            renderDropdownContent();
-        }, 100);
-    }
-
     // Populate the results dropdown with some results
     function populate_dropdown(query, results, result_count) {
         if ($upper_dummy) {
@@ -928,7 +934,7 @@ $.TokenList = function (input, url_or_data, settings) {
                     });
                 $lower_dummy = $("<div />").appendTo(dropdown);
 
-                renderDropdownContent(results, result_count, query);
+                render_dropdown_content(results, result_count, query);
             } else {
                 $item_list = $("<ul>")
                     .appendTo(dropdown)
@@ -940,7 +946,7 @@ $.TokenList = function (input, url_or_data, settings) {
                         hidden_input.change();
                         return false;
                     });
-                renderDropdownContent(results, result_count, query);
+                render_dropdown_content(results, result_count, query);
             }
 
             show_dropdown();
@@ -951,17 +957,6 @@ $.TokenList = function (input, url_or_data, settings) {
                 show_dropdown();
             }
         }
-    }
-
-    //returns true if the value is already selected
-    function isSelected(name) {
-        var itemSelected = false;
-        $.each(saved_tokens, function(saved_index, saved_value){
-            if(saved_value[settings.propertyToSearch] == name){
-                return itemSelected = true;
-            }
-        });
-        return itemSelected;
     }
 
     // Highlight an item in the results dropdown
@@ -976,11 +971,10 @@ $.TokenList = function (input, url_or_data, settings) {
 
             // Make sure that the selected item is visible.
             if (autoscroll) {
-                var top = Math.floor(item.position()['top']);
+                var top = Math.floor(item.position().top);
                 var pos;
                 if (top < 0) {
                     dropdown.scrollTop(dropdown.scrollTop() + top);
-                    // renderDropdownContent();
                 } else if (top + dropdown_item_height > dropdown.height() + 1) {
                     var delta = top + dropdown_item_height - dropdown.height();
                     dropdown.scrollTop(dropdown.scrollTop() + delta);
@@ -1020,14 +1014,14 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Do the actual search
     function run_search(query) {
-        var cache_key = query + computeURL();
+        var cache_key = query + compute_url();
         var cached_results = cache.get(cache_key);
         if(cached_results) {
             populate_dropdown(query, cached_results, cached_results.length);
         } else {
             // Are we doing an ajax search or local data search?
             if(settings.url) {
-                var url = computeURL();
+                var url = compute_url();
                 // Extract exisiting get params
                 var ajax_params = {};
                 ajax_params.data = {};
@@ -1087,7 +1081,7 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     // compute the dynamic URL
-    function computeURL() {
+    function compute_url() {
         var url = settings.url;
         if(typeof settings.url == 'function') {
             url = settings.url.call();
@@ -1096,10 +1090,10 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     // Escape special characters which are used in regular expressions
-    function escapeRegExp(text) {
-        return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    function escape_regexp(text) {
+        return text.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&");
     }
-};
+}
 
 // Really basic cache for the results
 $.TokenList.Cache = function (options) {
