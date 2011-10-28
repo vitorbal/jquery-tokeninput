@@ -330,9 +330,9 @@ $.TokenList = function (input, url_or_data, settings) {
                     deselect_token($(selected_token), POSITION.END);
                 }
 
-                // Focus input box
-                input_box.focus();
             }
+            // Focus input box
+            input_box.focus();
         })
         .mouseover(function (event) {
             var li = $(event.target).closest("li");
