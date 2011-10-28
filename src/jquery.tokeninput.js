@@ -26,6 +26,7 @@ var DEFAULT_SETTINGS = {
     processPrePopulate: false,
 
     // Display settings
+    showHintAsWatermark: false,
     hintText: "Type in a search term",
     noResultsText: "No results",
     searchingText: "Searching...",
@@ -70,7 +71,8 @@ var DEFAULT_CLASSES = {
     dropdownItem: "token-input-dropdown-item",
     dropdownItem2: "token-input-dropdown-item2",
     selectedDropdownItem: "token-input-selected-dropdown-item",
-    inputToken: "token-input-input-token"
+    inputToken: "token-input-input-token",
+    watermark: "token-input-watermark-applied"
 };
 
 // Input box position "enum"
@@ -219,7 +221,11 @@ $.TokenList = function (input, url_or_data, settings) {
                 return;
             }
             if (settings.tokenLimit === null || settings.tokenLimit !== token_count) {
-                show_dropdown_hint();
+                if (settings.showHintAsWatermark) {
+                    toggle_watermark(false);
+                } else {
+                    show_dropdown_hint();
+                }
             }
         })
         .blur(function () {
@@ -229,24 +235,15 @@ $.TokenList = function (input, url_or_data, settings) {
                 return;
             } else {
                 hide_dropdown();
-                $(this).val("");
+                if (settings.showHintAsWatermark) {
+                    toggle_watermark(true);
+                } else {
+                    $(this).val("");
+                }
                 restore_focus = false;
             }
         })
-        .bind("keyup keydown blur update", function() {
-            if (input_val === (input_val = input_box.val())) {
-                return;
-            }
-
-            // Enter new content into resizer and resize input accordingly
-            var escaped = input_val
-                .replace(/&/g, '&amp;')
-                .replace(/\s/g,' ')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-            input_resizer.html(escaped);
-            input_box.width(input_resizer.width() + 30);
-        })
+        .bind("keyup keydown blur update", resize_input)
         .keydown(function (event) {
             var previous_token;
             var next_token;
@@ -443,6 +440,11 @@ $.TokenList = function (input, url_or_data, settings) {
             whiteSpace: "nowrap"
         });
 
+    // Toggle the watermark hint text for the input box if applicable
+    if (settings.showHintAsWatermark) {
+        toggle_watermark(true);
+    }
+
     // Pre-populate list if items exist
     hidden_input.val("");
     var li_data = settings.prePopulate || hidden_input.data("pre");
@@ -509,6 +511,21 @@ $.TokenList = function (input, url_or_data, settings) {
             hide_dropdown();
             return;
         }
+    }
+
+    function resize_input() {
+        if (input_val === (input_val = input_box.val())) {
+            return;
+        }
+
+        // Enter new content into resizer and resize input accordingly
+        var escaped = input_val
+            .replace(/&/g, '&amp;')
+            .replace(/\s/g,' ')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        input_resizer.html(escaped);
+        input_box.width(input_resizer.width() + 30);
     }
 
     function is_printable_character(keycode) {
@@ -760,6 +777,20 @@ $.TokenList = function (input, url_or_data, settings) {
             dropdown.html("<p>"+settings.hintText+"</p>");
             dropdown_is_above = false;
             show_dropdown();
+        }
+    }
+
+    // Show or Hide the hint watermark on top of the input field
+    function toggle_watermark (showOrHide) {
+        if (settings.showHintAsWatermark && settings.hintText) {
+            if (showOrHide) {
+                input_box.val(settings.hintText)
+                    .addClass(settings.classes.watermark);
+                resize_input();
+            } else {
+                input_box.val("")
+                    .removeClass(settings.classes.watermark);
+            }
         }
     }
 
