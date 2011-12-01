@@ -521,7 +521,6 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Add a token to the token list based on user input
     function add_token (item) {
-        var li_data = $.data(item.get(0), "tokeninput");
         var callback_onAdd = settings.onAdd;
         var callback_onBeforeAdd = settings.onBeforeAdd;
 
@@ -547,7 +546,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
         // Execute the onAdd callback if defined
         if($.isFunction(callback_onBeforeAdd)) {
-            callback_onBeforeAdd(li_data);
+            callback_onBeforeAdd(item);
         }
 
         // Insert the new tokens
@@ -567,7 +566,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
         // Execute the onAdd callback if defined
         if($.isFunction(callback_onAdd)) {
-            callback_onAdd(li_data);
+            callback_onAdd(item);
         }
     }
 
