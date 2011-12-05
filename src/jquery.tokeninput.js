@@ -199,10 +199,14 @@ $.TokenList = function (input, url_or_data, settings) {
         .attr("id", settings.idPrefix + input.id)
         .focus(function () {
             if (settings.tokenLimit === null || settings.tokenLimit !== token_count) {
-                if (settings.showHintAsWatermark) {
-                    toggle_watermark(false);
+                if (settings.minChars === 0 && $(this).val() === '' ) {
+                  do_search();
                 } else {
-                    show_dropdown_hint();
+                  if (settings.showHintAsWatermark) {
+                      toggle_watermark(false);
+                  } else {
+                      show_dropdown_hint();
+                  }
                 }
             }
         })
@@ -340,10 +344,8 @@ $.TokenList = function (input, url_or_data, settings) {
                 if(selected_token) {
                     deselect_token($(selected_token), POSITION.END);
                 }
-
+                input_box.focus();
             }
-            // Focus input box
-            input_box.focus();
         })
         .mouseover(function (event) {
             var li = $(event.target).closest("li");
@@ -544,6 +546,10 @@ $.TokenList = function (input, url_or_data, settings) {
             }
         }
 
+        if (settings.minChars === 0 && $(input_box).val() === '' ) {
+            do_search();
+        }
+
         // Execute the onAdd callback if defined
         if($.isFunction(callback_onBeforeAdd)) {
             callback_onBeforeAdd(item);
@@ -598,8 +604,6 @@ $.TokenList = function (input, url_or_data, settings) {
             selected_token_index = token_count;
         }
 
-        // Show the input box and give it focus again
-        input_box.focus();
     }
 
     // Toggle selection of a token in the token list
@@ -843,9 +847,10 @@ $.TokenList = function (input, url_or_data, settings) {
     function do_search() {
         var query = input_box.val();
 
-        if(query && query.length) {
+        if ( (query && query.length) ||
+             (query === '' && settings.minChars === 0) ) {
             if(selected_token) {
-                deselect_token($(selected_token), POSITION.AFTER);
+                deselect_token($(selected_token));
             }
 
             if(query.length >= settings.minChars) {
