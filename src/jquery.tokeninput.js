@@ -546,10 +546,6 @@ $.TokenList = function (input, url_or_data, settings) {
             }
         }
 
-        if (settings.minChars === 0 && $(input_box).val() === '' ) {
-            do_search();
-        }
-
         // Execute the onAdd callback if defined
         if($.isFunction(callback_onBeforeAdd)) {
             callback_onBeforeAdd(item);
@@ -563,11 +559,16 @@ $.TokenList = function (input, url_or_data, settings) {
 
         // Only clear search if CTRL key is not pressed
         if (!ctrlPressed) {
-          // Clear input box
-          input_box.val("");
 
-          // Don't show the help dropdown, they've got the idea
-          hide_dropdown();
+            if (settings.minChars === 0 && $(input_box).val() === '' ) {
+                do_search();
+            } else {
+              // Clear input box
+              input_box.val("");
+
+              // Don't show the help dropdown, they've got the idea
+              hide_dropdown();
+            }
         }
 
         // Execute the onAdd callback if defined
