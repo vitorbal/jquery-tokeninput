@@ -372,6 +372,11 @@ $.TokenList = function (input, url_or_data, settings) {
         })
         .insertBefore(hidden_input);
 
+    // In case there is no fixed width, the dropdown's width has to be
+    // adjusted every time it is displayed
+    var tlw = token_list.css('width');
+    var update_input_token_width = (parseInt(tlw) == 0) || !tlw.match(/px$/);
+
     // The token holding the input box
     var input_token = $("<li />")
         .addClass(settings.classes.inputToken)
@@ -387,7 +392,8 @@ $.TokenList = function (input, url_or_data, settings) {
     var dropdown = $("<div>")
         .addClass(settings.classes.dropdown)
         .appendTo(dropdown_parent)
-        .hide();
+        .hide()
+        .css('position', 'absolute');
 
     // Magic element to help us resize the text input
     var input_resizer = $("<tester/>")
@@ -730,11 +736,10 @@ $.TokenList = function (input, url_or_data, settings) {
             // Show dropdown to the top, ergo 'dropup'
             dropdown
                 .css({
-                    position: "absolute",
                     bottom: $(token_list).outerHeight(),
                     top: '',
                     left: 0,
-                    width: token_list.css('width')
+                    width: token_list.width() + 'px'
                 })
                 .removeClass(settings.classes.dropdownBottomOrientation)
                 .addClass(settings.classes.dropdownTopOrientation)
@@ -742,11 +747,10 @@ $.TokenList = function (input, url_or_data, settings) {
         } else {
             dropdown
                 .css({
-                    position: "absolute",
                     top: 0,
                     bottom: '',
                     left: 0,
-                    width: token_list.css('width')
+                    width: token_list.width() + 'px'
                 })
                 .removeClass(settings.classes.dropdownTopOrientation)
                 .addClass(settings.classes.dropdownBottomOrientation)
