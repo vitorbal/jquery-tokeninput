@@ -379,14 +379,9 @@ $.TokenList = function (input, url_or_data, settings) {
         .append(input_box);
 
     // The list to store the dropdown items in
-    var dropdown_parent = $("<div>")
-        .insertAfter(token_list)
-        .css({
-            position: "relative"
-        });
     var dropdown = $("<div>")
         .addClass(settings.classes.dropdown)
-        .appendTo(dropdown_parent)
+        .appendTo("body")
         .hide();
 
     // Magic element to help us resize the text input
@@ -597,7 +592,9 @@ $.TokenList = function (input, url_or_data, settings) {
         }
 
         // Only clear search if CTRL key is not pressed
-        if (!ctrlPressed) {
+        if (ctrlPressed) {
+          show_dropdown();
+        } else {
 
             if (settings.minChars === 0 && $(input_box).val() === '' ) {
                 do_search();
@@ -725,15 +722,15 @@ $.TokenList = function (input, url_or_data, settings) {
               $(token_list).offset().top - $(token_list).outerHeight(),
             top_height_left = $(token_list).offset().top;
 
+
         if (dropdown_height > bottom_height_left &&
               dropdown_height < top_height_left) {
             // Show dropdown to the top, ergo 'dropup'
             dropdown
                 .css({
                     position: "absolute",
-                    bottom: $(token_list).outerHeight(),
-                    top: '',
-                    left: 0,
+                    top: $(token_list).offset().top - dropdown_height,
+                    left: $(token_list).offset().left,
                     width: token_list.css('width')
                 })
                 .removeClass(settings.classes.dropdownBottomOrientation)
@@ -743,9 +740,8 @@ $.TokenList = function (input, url_or_data, settings) {
             dropdown
                 .css({
                     position: "absolute",
-                    top: 0,
-                    bottom: '',
-                    left: 0,
+                    top: $(token_list).offset().top + $(token_list).outerHeight(),
+                    left: $(token_list).offset().left,
                     width: token_list.css('width')
                 })
                 .removeClass(settings.classes.dropdownTopOrientation)
@@ -841,12 +837,13 @@ $.TokenList = function (input, url_or_data, settings) {
                 dropdown.html("<p>"+settings.noResultsText+"</p>");
             }
             show_dropdown();
-
-            if(settings.animateDropdown) {
+            if (settings.animateDropdown) {
                 dropdown_ul.slideDown("fast");
+
             } else {
                 dropdown_ul.show();
             }
+
         } else {
             if(settings.noResultsText) {
                 dropdown.html("<p>"+settings.noResultsText+"</p>");
