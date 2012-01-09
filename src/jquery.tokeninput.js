@@ -14,6 +14,7 @@ var DEFAULT_SETTINGS = {
     // Search settings
     method: "GET",
     queryParam: "q",
+    queryOffsetParam: "start",
     searchDelay: 300,
     minChars: 1,
     propertyToSearch: "name",
@@ -26,12 +27,11 @@ var DEFAULT_SETTINGS = {
     processPrePopulate: false,
 
     // Display settings
+    lazyRenderingThreshold: 150,
     hintText: "Type in a search term",
     noResultsText: "No results",
     searchingText: "Searching...",
     deleteText: "&times;",
-    animateDropdown: true,
-    lazyRenderingThreshold: 150,
     theme: null,
     resultsFormatter: function(item) {
         return "<li>" + item[this.propertyToSearch]+ "</li>";
@@ -423,7 +423,7 @@ $.TokenList = function (input, url_or_data, settings) {
                 return;
             }
             clearTimeout(timeout);
-            timeout = setTimeout(function() { render_dropdown_content(); }, 100);
+            timeout = setTimeout(function() { update_dropdown_content(); }, 100);
         })
         .mouseover(function() { mouse_over_dropdown = true; })
         .mouseout(function() { mouse_over_dropdown = false; });
@@ -708,7 +708,7 @@ $.TokenList = function (input, url_or_data, settings) {
         dropdown
             .hide()
             .scrollTop(0)
-            .height('inherit')
+            .height('auto')
             .empty();
         selected_dropdown_item = null;
     }
@@ -774,7 +774,7 @@ $.TokenList = function (input, url_or_data, settings) {
       escape_regexp(value) + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
     }
 
-    function render_dropdown_content(results, result_count, query) {
+    function update_dropdown_content(results, result_count, query) {
         var from, to;
 
         if (results) {
@@ -805,6 +805,7 @@ $.TokenList = function (input, url_or_data, settings) {
               return;
             }
 
+	    // Calculate new region to be rendered
             from = Math.max(0, visible_from -
                 Math.floor((result_limit - visible_dropdown_items) / 2));
             to = from + result_limit;
@@ -813,6 +814,18 @@ $.TokenList = function (input, url_or_data, settings) {
                 to = dropdown_data.count - 1;
                 from = Math.max(0, from - result_limit);
             }
+
+	    // Check whether the data to be rendered is available
+	    var fetch_from;
+            for (var i = from; i <= to; i++) {
+		if (!dropdown_data.items[i]) {
+		    fetch_from = i;
+		    break;
+		}
+	    }
+	    if (fetch_from) {
+		console.log("Need to fetch data from: ", fetch_from);
+	    }
         } else {
             if (!results) {
                 return;
@@ -912,11 +925,11 @@ $.TokenList = function (input, url_or_data, settings) {
         dropdown.empty();
 
         if (results && result_count) {
-            // Choose rendering strategy:
+            // Choose rendering strategy
             lazy_rendering = (results.length < result_count) ||
                 (result_count > settings.lazyRenderingThreshold);
 
-            // Apply rendering strategy:
+            // Invoke rendering strategy
             if (lazy_rendering) {
                 result_limit = Math.min(settings.lazyRenderingThreshold, result_count);
 
@@ -934,7 +947,7 @@ $.TokenList = function (input, url_or_data, settings) {
                     });
                 $lower_dummy = $("<div />").appendTo(dropdown);
 
-                render_dropdown_content(results, result_count, query);
+                update_dropdown_content(results, result_count, query);
             } else {
                 $item_list = $("<ul>")
                     .appendTo(dropdown)
@@ -946,11 +959,10 @@ $.TokenList = function (input, url_or_data, settings) {
                         hidden_input.change();
                         return false;
                     });
-                render_dropdown_content(results, result_count, query);
+                update_dropdown_content(results, result_count, query);
             }
 
             show_dropdown();
-
         } else {
             if(settings.noResultsText) {
                 dropdown.html("<p>"+settings.noResultsText+"</p>");
@@ -1017,7 +1029,7 @@ $.TokenList = function (input, url_or_data, settings) {
         var cache_key = query + compute_url();
         var cached_results = cache.get(cache_key);
         if(cached_results) {
-            populate_dropdown(query, cached_results, cached_results.length);
+            populate_dropdown(query, cached_results, cached_results.length); // %TODO
         } else {
             // Are we doing an ajax search or local data search?
             if(settings.url) {
