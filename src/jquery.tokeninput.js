@@ -184,9 +184,6 @@ $.TokenList = function (input, url_or_data, settings) {
     // Keep track of the number of tokens in the list
     var token_count = 0;
 
-    // Basic cache to save on db hits
-    var cache = new $.TokenList.Cache();
-
     // Keep track of the timeout, old vals
     var timeout;
     var input_val;
@@ -423,7 +420,12 @@ $.TokenList = function (input, url_or_data, settings) {
                 return;
             }
             clearTimeout(timeout);
-            timeout = setTimeout(function() { update_dropdown_content(); }, 100);
+            timeout = setTimeout(
+                function() {
+                    update_dropdown_content();
+                },
+                100
+            );
         })
         .mouseover(function() { mouse_over_dropdown = true; })
         .mouseout(function() { mouse_over_dropdown = false; });
@@ -455,6 +457,20 @@ $.TokenList = function (input, url_or_data, settings) {
             check_token_limit();
         });
     }
+
+    // Initialize the data provider
+    var dataProvider;
+    if(settings.url) {
+        dataProvider = new TokenInput.AjaxDataProvider(
+            settings.url,
+            settings.method,
+            settings.crossDomain ? 'jsonp' : settings.contentType,
+            settings.queryOffsetParam
+        );
+    } else {
+        dataProvider = new TokenInput.LocalDataProvider(settings.data);
+    }
+
 
     // Initialization is done
     if($.isFunction(settings.onReady)) {
@@ -774,68 +790,47 @@ $.TokenList = function (input, url_or_data, settings) {
       escape_regexp(value) + ")(?![^<>]*>)(?![^&;]+;)", "g"), highlight_term(value, term));
     }
 
-    function update_dropdown_content(results, result_count, query) {
+    function update_dropdown_content() {
         var from, to;
-
-        if (results) {
-            dropdown_data = {
-                'items': results,
-                'count': result_count,
-                'query': query
-            };
-            visible_dropdown_items = 0;
-            rendered_from = 0;
-            rendered_to = 0;
-        }
 
         if (lazy_rendering) {
             var visible_from, visible_to;
-            if (dropdown_item_height) {
+            if (rendered_from === undefined) {
+                visible_from = 0;
+                visible_to = result_limit - 1;
+            } else {
                 // Check what needs to be rendered.
                 var pos = dropdown.scrollTop();
                 visible_from = Math.floor(pos / dropdown_item_height);
                 visible_to = visible_from + visible_dropdown_items + 1;
-            } else {
-                visible_from = 0;
-                visible_to = result_limit;
             }
 
             // Check whether the currently visible area is already rendered
             if (visible_from > rendered_from && visible_to < rendered_to) {
-              return;
+                return;
             }
 
-	    // Calculate new region to be rendered
+            // Calculate new region to be rendered
             from = Math.max(0, visible_from -
-                Math.floor((result_limit - visible_dropdown_items) / 2));
-            to = from + result_limit;
+              Math.floor((result_limit - (visible_dropdown_items || 0)) / 2));
+            to = from + result_limit - 1;
 
-            if (to >= dropdown_data.count) {
-                to = dropdown_data.count - 1;
+            if (to >= dataProvider.getLength()) {
+                to = dataProvider.getLength() - 1;
                 from = Math.max(0, from - result_limit);
             }
 
-	    // Check whether the data to be rendered is available
-	    var fetch_from;
-            for (var i = from; i <= to; i++) {
-		if (!dropdown_data.items[i]) {
-		    fetch_from = i;
-		    break;
-		}
-	    }
-	    if (fetch_from) {
-		console.log("Need to fetch data from: ", fetch_from);
-	    }
-        } else {
-            if (!results) {
+            // Check whether the data to be rendered is available
+            if (!dataProvider.ensureData(from, to, update_dropdown_content)) {
                 return;
             }
+        } else {
             from = 0;
-            to = result_count - 1;
+            to = dataProvider.getLength() - 1;
         }
 
-        // Calculate the available space for the dropdown above and below the
-        // token box
+        // Calculate the available space for the dropdown above and
+        // below the token box
         var $w = $(window);
         var space_below = Math.floor($w.height() + $w.scrollTop() -
             (token_list.offset().top + token_list.outerHeight()));
@@ -856,14 +851,14 @@ $.TokenList = function (input, url_or_data, settings) {
         $item_list.empty();
         var dd = dropdown[0];
         for (var i = from; i <= to; i++) {
-            var value = dropdown_data.items[i];
+            var value = dataProvider.getItem(i);
             var li = settings.resultsFormatter(value);
             var css_class = (i % 2) ?
                 settings.classes.dropdownItem :
                 settings.classes.dropdownItem2;
 
-            li = find_value_and_highlight_term(
-                li, value[settings.propertyToSearch], dropdown_data.query);
+            // li = find_value_and_highlight_term(
+            //     li, value[settings.propertyToSearch], dropdown_data.query);
 
             var $li = $(li)
                 .addClass(css_class)
@@ -903,12 +898,12 @@ $.TokenList = function (input, url_or_data, settings) {
         if (lazy_rendering) {
             $upper_dummy.height(from * dropdown_item_height);
             $lower_dummy.height(dropdown_item_height *
-                (dropdown_data.count - to - 1));
+              (dataProvider.getLength() - to - 1));
         }
     }
 
     // Populate the results dropdown with some results
-    function populate_dropdown(query, results, result_count) {
+    function populate_dropdown() {
         if ($upper_dummy) {
             $upper_dummy.remove();
             $upper_dummy = undefined;
@@ -924,51 +919,60 @@ $.TokenList = function (input, url_or_data, settings) {
         dropdown_item_height = undefined;
         dropdown.empty();
 
-        if (results && result_count) {
-            // Choose rendering strategy
-            lazy_rendering = (results.length < result_count) ||
-                (result_count > settings.lazyRenderingThreshold);
+        var result_count = dataProvider.getLength()
 
-            // Invoke rendering strategy
-            if (lazy_rendering) {
-                result_limit = Math.min(settings.lazyRenderingThreshold, result_count);
 
-                $upper_dummy = $("<div />").appendTo(dropdown);
-
-                $item_list = $("<ul>")
-                    .appendTo(dropdown)
-                    .mouseover(function (event) {
-                        select_dropdown_item($(event.target).closest("li"));
-                    })
-                    .mousedown(function (event) {
-                        add_token($(event.target).closest("li").data("tokeninput"));
-                        hidden_input.change();
-                        return false;
-                    });
-                $lower_dummy = $("<div />").appendTo(dropdown);
-
-                update_dropdown_content(results, result_count, query);
-            } else {
-                $item_list = $("<ul>")
-                    .appendTo(dropdown)
-                    .mouseover(function (event) {
-                        select_dropdown_item($(event.target).closest("li"));
-                    })
-                    .mousedown(function (event) {
-                        add_token($(event.target).closest("li").data("tokeninput"));
-                        hidden_input.change();
-                        return false;
-                    });
-                update_dropdown_content(results, result_count, query);
-            }
-
-            show_dropdown();
-        } else {
+        if (!result_count) {
             if(settings.noResultsText) {
                 dropdown.html("<p>"+settings.noResultsText+"</p>");
                 show_dropdown();
             }
+            return;
         }
+
+        // Choose rendering strategy
+        lazy_rendering = (result_count > settings.lazyRenderingThreshold) ||
+	    !dataProvider.queryResponseComplete();
+
+        // Render
+        rendered_from = undefined;
+        rendered_to = undefined;
+        if (lazy_rendering) {
+            result_limit = Math.min(
+                settings.lazyRenderingThreshold,
+                dataProvider.getItemCountPerQuery()
+            );
+
+            $upper_dummy = $("<div />").appendTo(dropdown);
+
+            $item_list = $("<ul>")
+                .appendTo(dropdown)
+                .mouseover(function (event) {
+                    select_dropdown_item($(event.target).closest("li"));
+                })
+                .mousedown(function (event) {
+                    add_token($(event.target).closest("li").data("tokeninput"));
+                    hidden_input.change();
+                    return false;
+                });
+            $lower_dummy = $("<div />").appendTo(dropdown);
+
+            update_dropdown_content();
+        } else {
+            $item_list = $("<ul>")
+                .appendTo(dropdown)
+                .mouseover(function (event) {
+                    select_dropdown_item($(event.target).closest("li"));
+                })
+                .mousedown(function (event) {
+                    add_token($(event.target).closest("li").data("tokeninput"));
+                    hidden_input.change();
+                    return false;
+                });
+            update_dropdown_content();
+       }
+
+       show_dropdown();
     }
 
     // Highlight an item in the results dropdown
@@ -1026,70 +1030,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
     // Do the actual search
     function run_search(query) {
-        var cache_key = query + compute_url();
-        var cached_results = cache.get(cache_key);
-        if(cached_results) {
-            populate_dropdown(query, cached_results, cached_results.length); // %TODO
-        } else {
-            // Are we doing an ajax search or local data search?
-            if(settings.url) {
-                var url = compute_url();
-                // Extract exisiting get params
-                var ajax_params = {};
-                ajax_params.data = {};
-                if(url.indexOf("?") > -1) {
-                    var parts = url.split("?");
-                    ajax_params.url = parts[0];
-
-                    var param_array = parts[1].split("&");
-                    $.each(param_array, function (index, value) {
-                        var kv = value.split("=");
-                        ajax_params.data[kv[0]] = kv[1];
-                    });
-                } else {
-                    ajax_params.url = url;
-                }
-
-                // Prepare the request
-                ajax_params.data[settings.queryParam] = query;
-                ajax_params.type = settings.method;
-                ajax_params.dataType = settings.contentType;
-                if(settings.crossDomain) {
-                    ajax_params.dataType = "jsonp";
-                }
-
-                // Attach the success callback
-                ajax_params.success = function(results) {
-                    if($.isFunction(settings.onResult)) {
-                        results = settings.onResult.call(hidden_input, results);
-                    }
-                    cache.add(cache_key, settings.jsonContainer ? results[settings.jsonContainer] : results);
-
-                  // only populate the dropdown if the results are associated with the active search query
-                  if(input_box.val().toLowerCase() === query) {
-                      var data = settings.jsonContainer ?
-                        results[settings.jsonContainer] : results;
-                      var count = settings.jsonResultCount ?
-                        results[settings.jsonResultCount] : data.length;
-                      populate_dropdown(query, data, count);
-                  }
-                };
-
-                // Make the request
-                $.ajax(ajax_params);
-            } else if(settings.local_data) {
-                // Do the search through local data
-                var results = $.grep(settings.local_data, function (row) {
-                    return row[settings.propertyToSearch].toLowerCase().indexOf(query.toLowerCase()) > -1;
-                });
-
-                if($.isFunction(settings.onResult)) {
-                    results = settings.onResult.call(hidden_input, results);
-                }
-                cache.add(cache_key, results);
-                populate_dropdown(query, results, results.length);
-            }
-        }
+        dataProvider.setQuery(query, populate_dropdown);
     }
 
     // compute the dynamic URL
@@ -1106,35 +1047,207 @@ $.TokenList = function (input, url_or_data, settings) {
         return text.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&");
     }
 }
-
-// Really basic cache for the results
-$.TokenList.Cache = function (options) {
-    var settings = $.extend({
-        max_size: 500
-    }, options);
-
-    var data = {};
-    var size = 0;
-
-    var flush = function () {
-        data = {};
-        size = 0;
-    };
-
-    this.add = function (query, results) {
-        if(size > settings.max_size) {
-            flush();
-        }
-
-        if(!data[query]) {
-            size += 1;
-        }
-
-        data[query] = results;
-    };
-
-    this.get = function (query) {
-        return data[query];
-    };
-};
 }(jQuery));
+
+(function($) {
+    function AjaxDataProvider(url, httpMethod, contentType, queryOffsetParam) {
+
+        var urlPath, urlData, currentQuery, currentResults;
+        var resultsCache = {}; window.resultsCache = resultsCache;
+        var queryCallback;
+        var itemCountPerQuery = undefined;
+
+       if (typeof(url) !== "function") {
+	    // The url is a string.  Parse it here. Once.
+            [ urlPath, urlData ] = parseUrlString(url)
+        }
+
+        function parseUrlString(urlString) {
+            var data = {};
+            var parts = url.split("?", 2);
+            if (parts.length >= 2) {
+                var params = parts[1].split("&");
+                for (var i in params) {
+                    var kv = params[i].split('=', 2);
+                    data[kv[0]] = kv[1];
+                }
+            }
+            return [ parts[0], data ];
+        }
+
+        function ajaxError(jqXHR, textStatus, errorThrown) {
+            console.log("ajax request failed:", textStatus, errorThrown);
+        }
+
+        function fetchData(start) {
+            var p = {
+                'dataType': contentType || undefined,
+                'error':    ajaxError,
+                'success':  function(data, textStatus, jqXHR) {
+		    ajaxSuccess(data, textStatus, jqXHR, currentQuery);
+		},
+                'type':     httpMethod || 'GET',
+                'url':      urlPath,
+                'data':     $.extend({}, urlData)  // make shallow copy of obj
+            };
+
+            p['data']['q'] = currentQuery;
+
+            if (start) {
+                p['data'][queryOffsetParam] = start;
+            }
+
+           $.ajax(p);
+        }
+
+        function setQuery(q, callback) {
+            currentResults = resultsCache[q];
+            currentQuery = q;
+            if (typeof(url) === "function") {
+		// The url is a function.  Execute it and parse its
+		// result each time a new query is set.
+                [ urlPath, urlData ] = parseUrlString(url)
+            }
+
+            if (currentResults) {
+		// There are cached results.  Do not query.
+                setTimeout(
+                    function () {
+                        callback();
+		    },
+                    1
+		);
+		return true;
+	    }
+
+	    currentResults = resultsCache[q] = {
+                data:     [],
+                count:    undefined,
+		complete: false
+            };
+	    queryCallback = callback;
+	    fetchData(); // initial fetch
+        }
+
+        function ajaxSuccess(data, textStatus, jqXHR, query) {
+	    var result = resultsCache[query];
+	    if (result === undefined) {
+		return;
+	    }
+
+	    // Add data to the result.
+            var offset = parseInt(data.offset, 10) || 0;
+            for (var i in data.data) {
+                result.data[parseInt(i, 10) + offset] = data.data[i];
+            }
+
+            result.count = parseInt(data.count, 10);
+            if (itemCountPerQuery === undefined) {
+                itemCountPerQuery = data.data.length;
+		result.complete = (result.count === itemCountPerQuery);
+            }
+            queryCallback();
+        }
+
+        function ensureData(from, to, callback) {
+            var fetch_from = undefined;
+            for (var i = from; i <= to; i++) {
+                if (currentResults['data'][i] === undefined) {
+                    fetch_from = i;
+                    break;
+                }
+            }
+            if (fetch_from !== undefined) {
+                setTimeout(
+                    function () {
+                        queryCallback = callback;
+                        fetchData(fetch_from);
+                    },
+                    1
+                );
+                return false;
+            }
+            return true;
+        }
+
+        function getItem(i) {
+            // console.log("Called: getItem(%i)", i);
+            if (currentQuery === undefined) {
+                // No query string has been defined
+                return undefined;
+            }
+
+            return currentResults['data'][i];
+        }
+
+        function queryResponseComplete() {
+	    return currentResults.complete;
+        }
+
+        function getLength() {
+            return currentResults['count'] || currentResults['data'].length;
+        }
+
+        function getItemCountPerQuery() {
+            return itemCountPerQuery;
+        }
+
+        $.extend(this, {
+            "queryResponseComplete": queryResponseComplete,
+            "setQuery":             setQuery,
+            "ensureData":           ensureData,
+            "getItem":              getItem,
+            "getItemCountPerQuery": getItemCountPerQuery,
+            "getLength":            getLength
+        });
+
+    }
+
+
+    function LocalDataProvider(data) {
+        var results = [];
+
+        function setQuery(q, callback) {
+            results = $.grep(data, function (row) {
+                return row[settings.propertyToSearch]
+                    .toLowerCase()
+                    .indexOf(query.toLowerCase()) > -1;
+            });
+            callback();
+        }
+
+
+        function queryResponseComplete() {
+            return true;
+        }
+
+        function ensureData(from, to) {
+            return true;
+        }
+
+        function getItem(i) {
+            return result[i];
+        }
+
+        function getLength() {
+            return result.length;
+        }
+
+        $.extend(this, {
+            "queryResponseComplete": queryResponseComplete,
+            "setQuery":             setQuery,
+            "ensureData":           ensureData,
+            "getItem":              getItem,
+            "getItemCountPerQuery": getLength,
+            "getLength":            getLength
+        });
+    }
+
+
+    $.extend(true, window, {
+        "TokenInput": {
+            "AjaxDataProvider":  AjaxDataProvider,
+            "LocalDataProvider": LocalDataProvider
+        }
+    });
+})(jQuery);
