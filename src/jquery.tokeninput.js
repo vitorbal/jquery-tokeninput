@@ -1064,44 +1064,8 @@ $.TokenList = function (input, url_or_data, settings) {
             [ urlPath, urlData ] = parseUrlString(url)
         }
 
-        function parseUrlString(urlString) {
-            var data = {};
-            var parts = url.split("?", 2);
-            if (parts.length >= 2) {
-                var params = parts[1].split("&");
-                for (var i in params) {
-                    var kv = params[i].split('=', 2);
-                    data[kv[0]] = kv[1];
-                }
-            }
-            return [ parts[0], data ];
-        }
-
-        function ajaxError(jqXHR, textStatus, errorThrown) {
-            console.log("ajax request failed:", textStatus, errorThrown);
-        }
-
-        function fetchData(start) {
-            var p = {
-                'dataType': contentType || undefined,
-                'error':    ajaxError,
-                'success':  function(data, textStatus, jqXHR) {
-		    ajaxSuccess(data, textStatus, jqXHR, currentQuery);
-		},
-                'type':     httpMethod || 'GET',
-                'url':      urlPath,
-                'data':     $.extend({}, urlData)  // make shallow copy of obj
-            };
-
-            p['data']['q'] = currentQuery;
-
-            if (start) {
-                p['data'][queryOffsetParam] = start;
-            }
-
-           $.ajax(p);
-        }
-
+	// (public) Set a new query.
+	// As soon as the server responded, the provided callback is run.
         function setQuery(q, callback) {
             currentResults = resultsCache[q];
             currentQuery = q;
@@ -1131,26 +1095,11 @@ $.TokenList = function (input, url_or_data, settings) {
 	    fetchData(); // initial fetch
         }
 
-        function ajaxSuccess(data, textStatus, jqXHR, query) {
-	    var result = resultsCache[query];
-	    if (result === undefined) {
-		return;
-	    }
-
-	    // Add data to the result.
-            var offset = parseInt(data.offset, 10) || 0;
-            for (var i in data.data) {
-                result.data[parseInt(i, 10) + offset] = data.data[i];
-            }
-
-            result.count = parseInt(data.count, 10);
-            if (itemCountPerQuery === undefined) {
-                itemCountPerQuery = data.data.length;
-		result.complete = (result.count === itemCountPerQuery);
-            }
-            queryCallback();
-        }
-
+	// (public) Check whether data is locally available.
+	// Returns true when the requested data is available locally.
+	// Otherwise it returns false, requests the data from the
+	// server and calls the supplied callabck function once the
+	// data is available.
         function ensureData(from, to, callback) {
             var fetch_from = undefined;
             for (var i = from; i <= to; i++) {
@@ -1172,6 +1121,11 @@ $.TokenList = function (input, url_or_data, settings) {
             return true;
         }
 
+	// (public) Get item with provided index.
+	// In case the requested item is not available loclly, the
+	// return value is undefined.  In order to prevent this,
+	// the caller has to first ensure that the data is available
+	// using ensureData().
         function getItem(i) {
             // console.log("Called: getItem(%i)", i);
             if (currentQuery === undefined) {
@@ -1182,16 +1136,90 @@ $.TokenList = function (input, url_or_data, settings) {
             return currentResults['data'][i];
         }
 
+	// (public) Check whether all respnse data is available locally
+	// When the server has sent all results for the the current
+	// query, the return value is true.  Otherwise it is false.
+	//
+	// Example: There are 1000 results for a certain query,
+	// but the server only sends the first 100 in the response,
+	// the return value is false.  Does the server, however, send
+	// all 1000 results in the response, the return value is true.
         function queryResponseComplete() {
 	    return currentResults.complete;
         }
 
+	// (public) Get the number of results for the query.
         function getLength() {
             return currentResults['count'] || currentResults['data'].length;
         }
 
+	// (public) Get the maximum number of items the server sends
+	// in each query response.
         function getItemCountPerQuery() {
             return itemCountPerQuery;
+        }
+
+	// (private) Parse the URL
+	// The return value is the path (URI) and an object/hash containing the
+	// query attributes
+        function parseUrlString(urlString) {
+            var data = {};
+            var parts = url.split("?", 2);
+            if (parts.length >= 2) {
+                var params = parts[1].split("&");
+                for (var i in params) {
+                    var kv = params[i].split('=', 2);
+                    data[kv[0]] = kv[1];
+                }
+            }
+            return [ parts[0], data ];
+        }
+
+        function fetchData(start) {
+            var p = {
+                'dataType': contentType || undefined,
+                'error':    ajaxError,
+                'success':  function(data, textStatus, jqXHR) {
+		    ajaxSuccess(data, textStatus, jqXHR, currentQuery);
+		},
+                'type':     httpMethod || 'GET',
+                'url':      urlPath,
+                'data':     $.extend({}, urlData)  // make shallow copy of obj
+            };
+
+            p['data']['q'] = currentQuery;
+
+            if (start) {
+                p['data'][queryOffsetParam] = start;
+            }
+
+           $.ajax(p);
+        }
+
+	// (private) Callback for ajax error
+        function ajaxError(jqXHR, textStatus, errorThrown) {
+            console.log("ajax request failed:", textStatus, errorThrown);
+        }
+
+	// (private) Callback for ajax success
+        function ajaxSuccess(data, textStatus, jqXHR, query) {
+	    var result = resultsCache[query];
+	    if (result === undefined) {
+		return;
+	    }
+
+	    // Add data to the result.
+            var offset = parseInt(data.offset, 10) || 0;
+            for (var i in data.data) {
+                result.data[parseInt(i, 10) + offset] = data.data[i];
+            }
+
+            result.count = parseInt(data.count, 10);
+            if (itemCountPerQuery === undefined) {
+                itemCountPerQuery = data.data.length;
+		result.complete = (result.count === itemCountPerQuery);
+            }
+            queryCallback();
         }
 
         $.extend(this, {
