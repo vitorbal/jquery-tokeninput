@@ -837,9 +837,6 @@ $.TokenList = function (input, url_or_data, settings) {
         var space_above = Math.floor(token_list.offset().top - $w.scrollTop());
         var dropdown_space = Math.max(space_above, space_below);
 
-        // By default, the dropdown is placed below the token box
-        dropdown_is_above = false;
-
         var selected_idx;
         if (selected_dropdown_item) {
             selected_idx = rendered_from + $(selected_dropdown_item).index();
@@ -880,15 +877,20 @@ $.TokenList = function (input, url_or_data, settings) {
                     // maximum vertical size ('height' or 'max-height').
                     visible_dropdown_items =
                         Math.ceil(dd.clientHeight / dropdown_item_height);
-                } else if (dd.clientHeight > dropdown_space) {
-                    // Dropdown goes beyond upper or lower edge of the window.
-                    visible_dropdown_items =
-                        Math.floor(dd.clientHeight / dropdown_item_height);
-                    dropdown.height(dropdown_space - 1);
                 }
             }
+
+	    // Prevent the dropdown from going beyond upper or lower edge
+	    // of the window.
+	    if (dd.clientHeight > dropdown_space) {
+                visible_dropdown_items =
+                    Math.floor(dd.clientHeight / dropdown_item_height);
+                dropdown.height(dropdown_space - 1);
+            }
+
             $.data($li.get(0), "tokeninput", value);
         }
+
         dropdown_is_above = (dd.clientHeight > space_below);
 
         rendered_from = from;
