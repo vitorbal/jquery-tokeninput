@@ -31,6 +31,7 @@ var DEFAULT_SETTINGS = {
     hintText: "Type in a search term",
     noResultsText: "No results",
     searchingText: "Searching...",
+    errorText: "BooM",
     deleteText: "&times;",
     theme: null,
     resultsFormatter: function(item) {
@@ -465,7 +466,8 @@ $.TokenList = function (input, url_or_data, settings) {
             settings.url,
             settings.method,
             settings.crossDomain ? 'jsonp' : settings.contentType,
-            settings.queryOffsetParam
+            settings.queryOffsetParam,
+	    show_dropdown_error
         );
     } else {
         dataProvider = new TokenInput.LocalDataProvider(settings.data);
@@ -779,6 +781,18 @@ $.TokenList = function (input, url_or_data, settings) {
         }
     }
 
+    function show_dropdown_error(msg) {
+	hide_dropdown();
+        if(settings.errorText) {
+            dropdown.html('<p class="error">' + settings.errorText + ': ' +
+		msg + '</p>');
+        } else {
+            dropdown.html('<p class="error">' + msg + '</p>');
+	}
+        dropdown_is_above = false;
+        show_dropdown();
+    }
+
     // Highlight the query part of the search term
     function highlight_term(value, term) {
         return value.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" +
@@ -1010,7 +1024,7 @@ $.TokenList = function (input, url_or_data, settings) {
     // Do a search and show the "searching" dropdown if the input is longer
     // than settings.minChars
     function do_search() {
-        var query = input_box.val().toLowerCase();
+        var query = input_box.val();
 
         if(query && query.length) {
             if(selected_token) {
@@ -1052,7 +1066,8 @@ $.TokenList = function (input, url_or_data, settings) {
 }(jQuery));
 
 (function($) {
-    function AjaxDataProvider(url, httpMethod, contentType, queryOffsetParam) {
+    function AjaxDataProvider(url, httpMethod, contentType, queryOffsetParam,
+	    errorCallback) {
 
         var urlPath, urlData, currentQuery, currentResults;
         var resultsCache = {}; window.resultsCache = resultsCache;
@@ -1198,7 +1213,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
 	// (private) Callback for ajax error
         function ajaxError(jqXHR, textStatus, errorThrown) {
-            console.log("ajax request failed:", textStatus, errorThrown);
+            errorCallback(errorThrown);
         }
 
 	// (private) Callback for ajax success

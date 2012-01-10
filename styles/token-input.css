@@ -86,6 +86,10 @@ div.token-input-dropdown p {
     color: #777;
 }
 
+div.token-input-dropdown p.error {
+    color: red;
+}
+
 div.token-input-dropdown ul {
     margin: 0;
     padding: 0;
