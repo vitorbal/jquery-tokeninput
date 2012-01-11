@@ -3,10 +3,13 @@ jQuery Tokeninput: A Tokenizing Autocomplete Text Entry
 
 Overview
 --------
-Tokeninput is a jQuery plugin which allows your users to select multiple items from a predefined list, using autocompletion as they type to find each item. You may have seen a similar type of text entry when filling in the recipients field sending messages on facebook.
+This is a drop-in alternative for the jquery-tokeninput by loopj (<http://loopj.com/jquery-tokeninput/>).
 
-Documentation, Features and Demos
----------------------------------
-Full details and documentation can be found on the project page here:
+Additional Features:
+- Lazy Rendering
+- Lazy Loading
+- Drop-Down never goes beyond lower or upper edge of the browser window
 
-<http://loopj.com/jquery-tokeninput/>
+Missing Features:
+- Drop-down animation
+- Query highlighting in the search result
