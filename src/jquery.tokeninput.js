@@ -1201,18 +1201,17 @@ $.TokenList = function (input, url_or_data, settings) {
         }
 
         function fetchData(start) {
+	    var query = currentQuery;
             var p = {
                 'dataType': contentType || undefined,
                 'error':    ajaxError,
                 'success':  function(data, textStatus, jqXHR) {
-		    ajaxSuccess(data, textStatus, jqXHR, currentQuery);
+		    ajaxSuccess(data, textStatus, jqXHR, query);
 		},
                 'type':     httpMethod || 'GET',
                 'url':      urlPath,
-                'data':     $.extend({}, urlData)  // make shallow copy of obj
+                'data':     $.extend({ 'q': query }, urlData)
             };
-
-            p['data']['q'] = currentQuery;
 
             if (start) {
                 p['data'][queryOffsetParam] = start;
