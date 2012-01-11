@@ -9,6 +9,7 @@
  */
 
 (function ($) {
+
 // Default settings
 var DEFAULT_SETTINGS = {
     // Search settings
@@ -467,7 +468,7 @@ $.TokenList = function (input, url_or_data, settings) {
             settings.method,
             settings.crossDomain ? 'jsonp' : settings.contentType,
             settings.queryOffsetParam,
-	    show_dropdown_error
+            show_dropdown_error
         );
     } else {
         dataProvider = new TokenInput.LocalDataProvider(settings.data);
@@ -782,20 +783,20 @@ $.TokenList = function (input, url_or_data, settings) {
     }
 
     function show_dropdown_error(msg) {
-	hide_dropdown();
+        hide_dropdown();
         if(settings.errorText) {
             dropdown.html('<p class="error">' + settings.errorText + ': ' +
-		msg + '</p>');
+                msg + '</p>');
         } else {
             dropdown.html('<p class="error">' + msg + '</p>');
-	}
+        }
         dropdown_is_above = false;
         show_dropdown();
     }
 
     function update_dropdown_content() {
         var from, to;
-	var render_from, render_to;
+        var render_from, render_to;
 
         if (lazy_rendering) {
             var visible_from, visible_to;
@@ -824,19 +825,19 @@ $.TokenList = function (input, url_or_data, settings) {
                 from = Math.max(0, to - result_limit + 1);
             }
 
-	    render_from = from;
-	    render_to = to;
-	    if (rendered_from !== undefined) {
-		if ((from >= rendered_from) && (from <= rendered_to)) {
-		    render_from = rendered_to + 1;
-		} else if ((to <= rendered_to) && (to >= rendered_from)) {
-		    render_to = rendered_from - 1;
-		}
-	    }
+            render_from = from;
+            render_to = to;
+            if (rendered_from !== undefined) {
+                if ((from >= rendered_from) && (from <= rendered_to)) {
+                    render_from = rendered_to + 1;
+                } else if ((to <= rendered_to) && (to >= rendered_from)) {
+                    render_to = rendered_from - 1;
+                }
+            }
 
             // Check whether the data to be rendered is available
             if (!dataProvider.ensureData(render_from, render_to,
-	      update_dropdown_content)) {
+              update_dropdown_content)) {
                 return;
             }
         } else {
@@ -861,9 +862,9 @@ $.TokenList = function (input, url_or_data, settings) {
         }
 
         var dd = dropdown[0];
-	var inv = (rendered_to !== undefined) && (render_to < rendered_to);
+        var inv = (rendered_to !== undefined) && (render_to < rendered_to);
         for (var i = render_from; i <= render_to; i++) {
-	    var item = inv ? (render_to + render_from - i) : i;
+            var item = inv ? (render_to + render_from - i) : i;
 
             var value = dataProvider.getItem(item);
             var li = settings.resultsFormatter(value);
@@ -874,16 +875,16 @@ $.TokenList = function (input, url_or_data, settings) {
             var $li = $(li)
                 .addClass(css_class);
 
-	    // Render new dropdown items.  Remove invisible items, if necessary.
-	    if (rendered_to === undefined) {
-		$li.appendTo($item_list);
-	    } else if (item > rendered_to) {
-		$li.appendTo($item_list);
-		$item_list.children('li:first').remove();
-	    } else if (i < rendered_from) {
-		$li.prependTo($item_list);
-		$item_list.children('li:last').remove();
-	    }
+            // Render new dropdown items.  Remove invisible items, if necessary.
+            if (rendered_to === undefined) {
+                $li.appendTo($item_list);
+            } else if (item > rendered_to) {
+                $li.appendTo($item_list);
+                $item_list.children('li:first').remove();
+            } else if (i < rendered_from) {
+                $li.prependTo($item_list);
+                $item_list.children('li:last').remove();
+            }
 
             if (item === 0) {
                 dropdown_item_height = $li.outerHeight(true);
@@ -904,9 +905,9 @@ $.TokenList = function (input, url_or_data, settings) {
                 }
             }
 
-	    // Prevent the dropdown from going beyond upper or lower edge
-	    // of the window.
-	    if (dd.clientHeight > dropdown_space) {
+            // Prevent the dropdown from going beyond upper or lower edge
+            // of the window.
+            if (dd.clientHeight > dropdown_space) {
                 visible_dropdown_items =
                     Math.floor(dd.clientHeight / dropdown_item_height);
                 dropdown.height(dropdown_space - 1);
@@ -914,7 +915,6 @@ $.TokenList = function (input, url_or_data, settings) {
 
             $.data($li.get(0), "tokeninput", value);
         }
-	window.il=$item_list;
 
         dropdown_is_above = (dd.clientHeight > space_below);
 
@@ -959,7 +959,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
         // Choose rendering strategy
         lazy_rendering = (result_count > settings.lazyRenderingThreshold) ||
-	    !dataProvider.queryResponseComplete();
+            !dataProvider.queryResponseComplete();
 
         // Render
         rendered_from = undefined;
@@ -1078,7 +1078,7 @@ $.TokenList = function (input, url_or_data, settings) {
 
 (function($) {
     function AjaxDataProvider(url, httpMethod, contentType, queryOffsetParam,
-	    errorCallback) {
+            errorCallback) {
 
         var urlPath, urlData, currentQuery, currentResults;
         var resultsCache = {}; window.resultsCache = resultsCache;
@@ -1086,46 +1086,50 @@ $.TokenList = function (input, url_or_data, settings) {
         var itemCountPerQuery = undefined;
 
        if (typeof(url) !== "function") {
-	    // The url is a string.  Parse it here. Once.
-            [ urlPath, urlData ] = parseUrlString(url)
+           // The url is a string.  Parse it here. Once.
+           var result = parseUrlString(url);
+           urlPath = result[0];
+           urlData = result[1];
         }
 
-	// (public) Set a new query.
-	// As soon as the server responded, the provided callback is run.
+        // (public) Set a new query.
+        // As soon as the server responded, the provided callback is run.
         function setQuery(q, callback) {
             currentResults = resultsCache[q];
             currentQuery = q;
             if (typeof(url) === "function") {
-		// The url is a function.  Execute it and parse its
-		// result each time a new query is set.
-                [ urlPath, urlData ] = parseUrlString(url)
+                // The url is a function.  Execute it and parse its
+                // result each time a new query is set.
+                var result = parseUrlString(url);
+                urlPath = result[0];
+                urlData = result[1];
             }
 
             if (currentResults) {
-		// There are cached results.  Do not query.
+                // There are cached results.  Do not query.
                 setTimeout(
                     function () {
                         callback();
-		    },
+                    },
                     1
-		);
-		return true;
-	    }
+                );
+                return true;
+            }
 
-	    currentResults = resultsCache[q] = {
+            currentResults = resultsCache[q] = {
                 data:     [],
                 count:    undefined,
-		complete: false
+                complete: false
             };
-	    queryCallback = callback;
-	    fetchData(); // initial fetch
+            queryCallback = callback;
+            fetchData(); // initial fetch
         }
 
-	// (public) Check whether data is locally available.
-	// Returns true when the requested data is available locally.
-	// Otherwise it returns false, requests the data from the
-	// server and calls the supplied callabck function once the
-	// data is available.
+        // (public) Check whether data is locally available.
+        // Returns true when the requested data is available locally.
+        // Otherwise it returns false, requests the data from the
+        // server and calls the supplied callabck function once the
+        // data is available.
         function ensureData(from, to, callback) {
             var fetch_from = undefined;
             for (var i = from; i <= to; i++) {
@@ -1147,11 +1151,11 @@ $.TokenList = function (input, url_or_data, settings) {
             return true;
         }
 
-	// (public) Get item with provided index.
-	// In case the requested item is not available loclly, the
-	// return value is undefined.  In order to prevent this,
-	// the caller has to first ensure that the data is available
-	// using ensureData().
+        // (public) Get item with provided index.
+        // In case the requested item is not available loclly, the
+        // return value is undefined.  In order to prevent this,
+        // the caller has to first ensure that the data is available
+        // using ensureData().
         function getItem(i) {
             if (currentQuery === undefined) {
                 // No query string has been defined
@@ -1161,32 +1165,32 @@ $.TokenList = function (input, url_or_data, settings) {
             return currentResults['data'][i];
         }
 
-	// (public) Check whether all respnse data is available locally
-	// When the server has sent all results for the the current
-	// query, the return value is true.  Otherwise it is false.
-	//
-	// Example: There are 1000 results for a certain query,
-	// but the server only sends the first 100 in the response,
-	// the return value is false.  Does the server, however, send
-	// all 1000 results in the response, the return value is true.
+        // (public) Check whether all respnse data is available locally
+        // When the server has sent all results for the the current
+        // query, the return value is true.  Otherwise it is false.
+        //
+        // Example: There are 1000 results for a certain query,
+        // but the server only sends the first 100 in the response,
+        // the return value is false.  Does the server, however, send
+        // all 1000 results in the response, the return value is true.
         function queryResponseComplete() {
-	    return currentResults.complete;
+            return currentResults.complete;
         }
 
-	// (public) Get the number of results for the query.
+        // (public) Get the number of results for the query.
         function getLength() {
             return currentResults['count'] || currentResults['data'].length;
         }
 
-	// (public) Get the maximum number of items the server sends
-	// in each query response.
+        // (public) Get the maximum number of items the server sends
+        // in each query response.
         function getItemCountPerQuery() {
             return itemCountPerQuery;
         }
 
-	// (private) Parse the URL
-	// The return value is the path (URI) and an object/hash containing the
-	// query attributes
+        // (private) Parse the URL
+        // The return value is the path (URI) and an object/hash containing the
+        // query attributes
         function parseUrlString(urlString) {
             var data = {};
             var parts = url.split("?", 2);
@@ -1201,13 +1205,13 @@ $.TokenList = function (input, url_or_data, settings) {
         }
 
         function fetchData(start) {
-	    var query = currentQuery;
+            var query = currentQuery;
             var p = {
                 'dataType': contentType || undefined,
                 'error':    ajaxError,
                 'success':  function(data, textStatus, jqXHR) {
-		    ajaxSuccess(data, textStatus, jqXHR, query);
-		},
+                    ajaxSuccess(data, textStatus, jqXHR, query);
+                },
                 'type':     httpMethod || 'GET',
                 'url':      urlPath,
                 'data':     $.extend({ 'q': query }, urlData)
@@ -1220,19 +1224,19 @@ $.TokenList = function (input, url_or_data, settings) {
            $.ajax(p);
         }
 
-	// (private) Callback for ajax error
+        // (private) Callback for ajax error
         function ajaxError(jqXHR, textStatus, errorThrown) {
             errorCallback(errorThrown);
         }
 
-	// (private) Callback for ajax success
+        // (private) Callback for ajax success
         function ajaxSuccess(data, textStatus, jqXHR, query) {
-	    var result = resultsCache[query];
-	    if (result === undefined) {
-		return;
-	    }
+            var result = resultsCache[query];
+            if (result === undefined) {
+                return;
+            }
 
-	    // Add data to the result.
+            // Add data to the result.
             var offset = parseInt(data.offset, 10) || 0;
             for (var i in data.data) {
                 result.data[parseInt(i, 10) + offset] = data.data[i];
@@ -1241,7 +1245,7 @@ $.TokenList = function (input, url_or_data, settings) {
             result.count = parseInt(data.count, 10);
             if (itemCountPerQuery === undefined) {
                 itemCountPerQuery = data.data.length;
-		result.complete = (result.count === itemCountPerQuery);
+                result.complete = (result.count === itemCountPerQuery);
             }
             queryCallback();
         }
