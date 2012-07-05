@@ -98,7 +98,8 @@ var KEY = {
     DOWN: 40,
     NUMPAD_ENTER: 108,
     COMMA: 188,
-    MAC_COMMAND: 91
+    MAC_COMMAND: 91,
+    CHROME_CTRL: 17
 };
 
 // Additional public (exposed) methods
@@ -309,7 +310,8 @@ $.TokenList = function (input, url_or_data, settings) {
                   return true;
 
                 default:
-                    if (event.ctrlKey || event.which === KEY.MAC_COMMAND) {
+                    if (event.ctrlKey || event.which === KEY.MAC_COMMAND
+                                      || event.which === KEY.CHROME_CTRL) {
                       ctrlPressed = true;
                     } else {
                       if(String.fromCharCode(event.which)) {
@@ -321,7 +323,8 @@ $.TokenList = function (input, url_or_data, settings) {
             }
         })
         .keyup(function (event) {
-            if (event.ctrlKey || event.which === KEY.MAC_COMMAND) {
+            if (event.ctrlKey || event.which === KEY.MAC_COMMAND
+                              || event.which === KEY.CHROME_CTRL) {
               ctrlPressed = false;
             }
         }
